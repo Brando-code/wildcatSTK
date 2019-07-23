@@ -10,6 +10,18 @@
 namespace Common
 {
     class ConfigVariable;
+
+    class TransformationType;
+    class FirstDifferenceTransformation;
+    class SimpleReturnTransformation;
+    class LogReturnTransformation;
+    class LevelTransformation;
+
+    class TransformationTypeFactory;
+    class FirstDifferenceTransformationFactory;
+    class SimpleReturnTransformationFactory;
+    class LogReturnTransformationFactory;
+    class LevelTransformationFactory;
 }
 
 #endif //QUANTLIB_COMMON_H

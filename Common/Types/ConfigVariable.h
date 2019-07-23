@@ -8,30 +8,32 @@
 #include <string>
 #include <memory>
 #include "../Common.h"
+#include "TimeSeries.h"
 
-class TimeSeries;
-class TransformationType;
 
+//ConfigVariable class declaration
 class Common::ConfigVariable
 {
 public:
-    ConfigVariable(const std::string& rawConfigVariable);
+    explicit ConfigVariable(const std::string& rawConfigVariable);
 
     std::string getBasename() const;
     std::string getTransformationTypeCode() const;
     unsigned int getLagDependency() const;
-    TransformationType getTransformationType() const;
+    //TransformationType getTransformationType() const;
 
     double getTransformedVariableValue(const TimeSeries& ts, int index) const;
     double getLevel(const TimeSeries& ts, double transformedValue, int index) const;
 
-private:
-    const std::string m_basename, m_transformationCode;
-    const std::unique_ptr<TransformationType> m_transformationTypePtr;
+private:    //[AC] find a way to initialize class from initialization list and mark as cost
+    std::string m_basename, m_transformationCode;
+    unsigned int m_lag;
+    std::unique_ptr<Common::TransformationType> m_transformationTypePtr;
 
 };
 
 
+//TransformationType class hierarchy declaration
 class Common::TransformationType
 {
 public:
@@ -69,10 +71,41 @@ class Common::LevelTransformation : public Common::TransformationType
     double getLevel(const TimeSeries& ts, double transformedValue, int index) const final;
 };
 
-//[AC] consider switching to abstract factory + mapping
+
+//Abstract factory class hierarchy declaration
 class Common::TransformationTypeFactory
 {
-    static std::unique_ptr<TransformationType> create(const std::string& transformationTypeCode);
+public:
+    virtual std::unique_ptr<Common::TransformationType> create() const = 0;
+    virtual ~TransformationTypeFactory() = default;
+};
+
+
+class Common::FirstDifferenceTransformationFactory : public TransformationTypeFactory
+{
+public:
+    std::unique_ptr<Common::TransformationType> create() const final;
+};
+
+
+class Common::SimpleReturnTransformationFactory : public TransformationTypeFactory
+{
+public:
+    std::unique_ptr<Common::TransformationType> create() const final;
+};
+
+
+class Common::LogReturnTransformationFactory : public TransformationTypeFactory
+{
+public:
+    std::unique_ptr<Common::TransformationType> create() const final;
+};
+
+
+class Common::LevelTransformationFactory : public TransformationTypeFactory
+{
+public:
+    std::unique_ptr<Common::TransformationType> create() const final;
 };
 
 

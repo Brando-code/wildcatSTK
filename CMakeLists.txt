@@ -16,4 +16,5 @@ target_link_libraries(UTests wildCatSTKCore ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY}
 
 add_custom_command(TARGET UTests PRE_BUILD COMMAND lcov --directory . --zerocounters)
 
-add_library(wildCatSTKCore Common/Common.h Common/Types/ConfigVariable.cpp Common/Types/ConfigVariable.h)
+add_library(wildCatSTKCore Common/Common.h Common/Types/ConfigVariable.cpp Common/Types/ConfigVariable.h Common/Types/TimeSeries.cpp
+        Common/Types/TimeSeries.h Global/Mappings/FactoryMappings.cpp Global/Mappings/FactoryMappings.h Global/Global.h)
