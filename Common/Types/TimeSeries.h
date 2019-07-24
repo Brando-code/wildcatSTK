@@ -16,7 +16,7 @@ public:
     TimeSeries(const std::string& variableName, const std::vector<double>& variableData);
 
     std::string getName() const;
-    std::vector getValues() const;
+    std::vector<double> getValues() const;
 
 private:
     std::pair<std::string, std::vector<double>> m_data;

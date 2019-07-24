@@ -12,9 +12,9 @@ include_directories(${Boost_INCLUDE_DIR})
 
 add_executable(UTests UnitTests/UnitTestsTypes.cpp wildcatSTKCoreIncludes.h)
 target_include_directories(UTests PRIVATE ${BOOST_INCLUDE_DIRS})
-target_link_libraries(UTests wildCatSTKCore ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY})
+target_link_libraries(UTests wildcatSTKCore ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY})
 
 add_custom_command(TARGET UTests PRE_BUILD COMMAND lcov --directory . --zerocounters)
 
-add_library(wildCatSTKCore Common/Common.h Common/Types/ConfigVariable.cpp Common/Types/ConfigVariable.h Common/Types/TimeSeries.cpp
+add_library(wildcatSTKCore Common/Common.h Common/Types/ConfigVariable.cpp Common/Types/ConfigVariable.h Common/Types/TimeSeries.cpp
         Common/Types/TimeSeries.h Global/Mappings/FactoryMappings.cpp Global/Mappings/FactoryMappings.h Global/Global.h)

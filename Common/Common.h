@@ -5,10 +5,9 @@
 #ifndef QUANTLIB_COMMON_H
 #define QUANTLIB_COMMON_H
 
-#include "Types/ConfigVariable.h"
-
 namespace Common
 {
+    class TimeSeries;
     class ConfigVariable;
 
     class TransformationType;

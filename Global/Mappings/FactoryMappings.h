@@ -15,12 +15,12 @@ class Global::TransformationTypeCodeFactoryMapping
 {
 public:
     static TransformationTypeCodeFactoryMapping* instance();
-    std::map<std::string, Common::TransformationTypeFactory> getMapping() const;
+    std::map<std::string, Common::TransformationTypeFactory *> getMapping() const;
 
 private:
     TransformationTypeCodeFactoryMapping();
     static TransformationTypeCodeFactoryMapping* m_instance;
-    std::map<std::string, Common::TransformationTypeFactory> m_mapping;
+    std::map<std::string, Common::TransformationTypeFactory*> m_mapping;
 };
 
 

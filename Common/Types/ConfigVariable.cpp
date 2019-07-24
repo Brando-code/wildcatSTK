@@ -10,17 +10,17 @@
 using namespace Common;
 
 //TransformationType class hierarchy implementation
-double FirstDifferenceTransformation::getTransformedVariableValue(const TimeSeries &ts, int index) const
+double FirstDifferenceTransformation::getTransformedVariableValue(const TimeSeries &ts, unsigned int index) const
 {
     return ts.getValues().at(index) - ts.getValues().at(index - 1);
 }
 
-double FirstDifferenceTransformation::getLevel(const TimeSeries &ts, double transformedValue, int index) const
+double FirstDifferenceTransformation::getLevel(const TimeSeries &ts, double transformedValue, unsigned int index) const
 {
     return transformedValue + ts.getValues().at(index - 1);
 }
 
-double SimpleReturnTransformation::getTransformedVariableValue(const TimeSeries &ts, int index) const
+double SimpleReturnTransformation::getTransformedVariableValue(const TimeSeries &ts, unsigned int index) const
 {
     if (ts.getValues().at(index - 1) != 0)
         return ts.getValues().at(index)/ts.getValues().at(index - 1) - 1;
@@ -29,60 +29,61 @@ double SimpleReturnTransformation::getTransformedVariableValue(const TimeSeries 
         ts.getName() + " at index " + std::to_string(index));
 }
 
-double SimpleReturnTransformation::getLevel(const TimeSeries &ts, double transformedValue, int index) const
+double SimpleReturnTransformation::getLevel(const TimeSeries &ts, double transformedValue, unsigned int index) const
 {
-    return ts.getValues().(index - 1) * (1 + transformedValue);
+    return ts.getValues().at(index - 1) * (1 + transformedValue);
 }
 
-double LogReturnTransformation::getTransformedVariableValue(const TimeSeries &ts, int index) const
+double LogReturnTransformation::getTransformedVariableValue(const TimeSeries &ts, unsigned int index) const
 {
-    return log(ts.getValues().(index)) - log(ts.getValues().(index - 1));
+    return log(ts.getValues().at(index)) - log(ts.getValues().at(index - 1));
 }
 
-double LogReturnTransformation::getLevel(const TimeSeries &ts, double transformedValue, int index) const
+double LogReturnTransformation::getLevel(const TimeSeries &ts, double transformedValue, unsigned int index) const
 {
-    return exp(transformedValue) * ts.getValues().(index - 1);
+    return exp(transformedValue) * ts.getValues().at(index - 1);
 }
 
-double LevelTransformation::getTransformedVariableValue(const TimeSeries &ts, int index) const
+double LevelTransformation::getTransformedVariableValue(const TimeSeries &ts, unsigned int index) const
 {
-    return ts.getValues().(index);
+    return ts.getValues().at(index);
 }
 
-double LevelTransformation::getLevel(const TimeSeries &ts, double transformedValue, int index) const
+double LevelTransformation::getLevel(const TimeSeries &ts, double transformedValue, unsigned int index) const
 {
-    return ts.getValues().(index);
+    return ts.getValues().at(index);
 }
 
 
 //TransformationType class hierarchy implementation
 std::unique_ptr<TransformationType> FirstDifferenceTransformationFactory::create() const
 {
-    return std::make_unique<TransformationType>(FirstDifferenceTransformation());
+    return std::make_unique<FirstDifferenceTransformation>(FirstDifferenceTransformation());
 }
 
 std::unique_ptr<TransformationType> SimpleReturnTransformationFactory::create() const
 {
-    return std::make_unique<TransformationType>(SimpleReturnTransformation());
+    return std::make_unique<SimpleReturnTransformation>(SimpleReturnTransformation());
 }
 
 std::unique_ptr<TransformationType> LogReturnTransformationFactory::create() const
 {
-    return std::make_unique<TransformationType>(LogReturnTransformation());
+    return std::make_unique<LogReturnTransformation>(LogReturnTransformation());
 }
 
 std::unique_ptr<TransformationType> LevelTransformationFactory::create() const
 {
-    return std::make_unique<TransformationType>(LevelTransformation());
+    return std::make_unique<LevelTransformation>(LevelTransformation());
 }
 
 
 //ConfigVariable class implementation
 ConfigVariable::ConfigVariable(const std::string &rawConfigVariable)
 {
-    const char* delimiter = "|";
+    const std::string delimiter = "|";
     std::vector<std::string> splitConfigVariable;
-    boost::split(splitConfigVariable, rawConfigVariable, [](const char* c){ return c == delimiter;});
+    //[delimiter](char c[]){ return c == delimiter;}
+    boost::split(splitConfigVariable, rawConfigVariable, boost::is_any_of(delimiter));
 
     const unsigned int expectedConfigVariableComponents = 3; //rawConfigVariable = basename|transformationTypeCode|lag
     //const unsigned int minimumConfigVariableComponents = 1; //rawConfigVariable = basename (curve models only)
@@ -93,9 +94,9 @@ ConfigVariable::ConfigVariable(const std::string &rawConfigVariable)
         {
             m_basename = splitConfigVariable[0];
             m_transformationCode = splitConfigVariable[1];
-            m_lag = static_cast<unsigned int>(atol(splitConfigVariable[2].c_str()));
+            m_lag = static_cast<unsigned int>(atoi(splitConfigVariable[2].c_str()));
             m_transformationTypePtr = Global::TransformationTypeCodeFactoryMapping::instance() ->
-                    getMapping().at(m_transformationCode).create();
+                    getMapping().at(m_transformationCode) -> create();
         }
 }
 
@@ -114,14 +115,14 @@ unsigned int ConfigVariable::getLagDependency() const
     return m_lag;
 }
 
-double ConfigVariable::getTransformedVariableValue(const Common::TimeSeries &ts, int index) const
+double ConfigVariable::getTransformedVariableValue(const Common::TimeSeries &ts, unsigned int index) const
 {
-    return m_transformationTypePtr -> getTransformedVariableValue(ts, index);
+    return m_transformationTypePtr -> getTransformedVariableValue(ts, index - m_lag);
 }
 
-double ConfigVariable::getLevel(const Common::TimeSeries &ts, double transformedValue, int index) const
+double ConfigVariable::getLevel(const Common::TimeSeries &ts, double transformedValue, unsigned int index) const
 {
-    return m_transformationTypePtr -> getLevel(ts, transformedValue, index);
+    return m_transformationTypePtr -> getLevel(ts, transformedValue, index - m_lag);
 }
 
 

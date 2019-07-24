@@ -22,8 +22,8 @@ public:
     unsigned int getLagDependency() const;
     //TransformationType getTransformationType() const;
 
-    double getTransformedVariableValue(const TimeSeries& ts, int index) const;
-    double getLevel(const TimeSeries& ts, double transformedValue, int index) const;
+    double getTransformedVariableValue(const TimeSeries& ts, unsigned int index) const;
+    double getLevel(const TimeSeries& ts, double transformedValue, unsigned int index) const;
 
 private:    //[AC] find a way to initialize class from initialization list and mark as cost
     std::string m_basename, m_transformationCode;
@@ -37,8 +37,8 @@ private:    //[AC] find a way to initialize class from initialization list and m
 class Common::TransformationType
 {
 public:
-    virtual double getTransformedVariableValue(const TimeSeries& ts, int index) const = 0;
-    virtual double getLevel(const TimeSeries& ts, double transformedValue, int index) const = 0;
+    virtual double getTransformedVariableValue(const TimeSeries& ts, unsigned int index) const = 0;
+    virtual double getLevel(const TimeSeries& ts, double transformedValue, unsigned int index) const = 0;
 
     virtual ~TransformationType() = default;
 };
@@ -46,29 +46,29 @@ public:
 
 class Common::FirstDifferenceTransformation : public Common::TransformationType
 {
-    double getTransformedVariableValue(const TimeSeries& ts, int index) const final;
-    double getLevel(const TimeSeries& ts, double transformedValue, int index) const final;
+    double getTransformedVariableValue(const TimeSeries& ts, unsigned int index) const final;
+    double getLevel(const TimeSeries& ts, double transformedValue, unsigned int index) const final;
 };
 
 
 class Common::SimpleReturnTransformation : public Common::TransformationType
 {
-    double getTransformedVariableValue(const TimeSeries& ts, int index) const final;
-    double getLevel(const TimeSeries& ts, double transformedValue, int index) const final;
+    double getTransformedVariableValue(const TimeSeries& ts, unsigned int index) const final;
+    double getLevel(const TimeSeries& ts, double transformedValue, unsigned int index) const final;
 };
 
 
 class Common::LogReturnTransformation : public Common::TransformationType
 {
-    double getTransformedVariableValue(const TimeSeries& ts, int index) const final;
-    double getLevel(const TimeSeries& ts, double transformedValue, int index) const final;
+    double getTransformedVariableValue(const TimeSeries& ts, unsigned int index) const final;
+    double getLevel(const TimeSeries& ts, double transformedValue, unsigned int index) const final;
 };
 
 
 class Common::LevelTransformation : public Common::TransformationType
 {
-    double getTransformedVariableValue(const TimeSeries& ts, int index) const final;
-    double getLevel(const TimeSeries& ts, double transformedValue, int index) const final;
+    double getTransformedVariableValue(const TimeSeries& ts, unsigned int index) const final;
+    double getLevel(const TimeSeries& ts, double transformedValue, unsigned int index) const final;
 };
 
 
