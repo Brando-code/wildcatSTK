@@ -21,6 +21,10 @@ namespace Common
     class SimpleReturnTransformationFactory;
     class LogReturnTransformationFactory;
     class LevelTransformationFactory;
+    
+    class StringSplit;
+    class StringSplitDecorator;
+    class StringSplitConfigVariableDecorator;
 }
 
 #endif //QUANTLIB_COMMON_H

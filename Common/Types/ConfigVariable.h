@@ -8,6 +8,7 @@
 #include <string>
 #include <memory>
 #include "../Common.h"
+#include "../Utils/Tools.h"
 #include "TimeSeries.h"
 
 
@@ -16,18 +17,18 @@ class Common::ConfigVariable
 {
 public:
     explicit ConfigVariable(const std::string& rawConfigVariable);
+    ConfigVariable(const std::string& rawConfigVariable, const std::string& delimiter);
 
     std::string getBasename() const;
     std::string getTransformationTypeCode() const;
     unsigned int getLagDependency() const;
-    //TransformationType getTransformationType() const;
 
     double getTransformedVariableValue(const TimeSeries& ts, unsigned int index) const;
     double getLevel(const TimeSeries& ts, double transformedValue, unsigned int index) const;
 
-private:    //[AC] find a way to initialize class from initialization list and mark as cost
-    std::string m_basename, m_transformationCode;
-    unsigned int m_lag;
+private:    //[AC] find a way to initialize class from initialization list and mark as const
+    Common::StringSplitConfigVariableDecorator m_strsplit;
+    const std::string m_delimiter;
     std::unique_ptr<Common::TransformationType> m_transformationTypePtr;
 
 };

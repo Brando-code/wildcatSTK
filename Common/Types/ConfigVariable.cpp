@@ -78,51 +78,40 @@ std::unique_ptr<TransformationType> LevelTransformationFactory::create() const
 
 
 //ConfigVariable class implementation
-ConfigVariable::ConfigVariable(const std::string &rawConfigVariable)
+ConfigVariable::ConfigVariable(const std::string &rawConfigVariable, const std::string& delimiter) : m_strsplit(), m_delimiter(delimiter)
 {
-    const std::string delimiter = "|";
-    std::vector<std::string> splitConfigVariable;
-    //[delimiter](char c[]){ return c == delimiter;}
-    boost::split(splitConfigVariable, rawConfigVariable, boost::is_any_of(delimiter));
-
-    const unsigned int expectedConfigVariableComponents = 3; //rawConfigVariable = basename|transformationTypeCode|lag
-    //const unsigned int minimumConfigVariableComponents = 1; //rawConfigVariable = basename (curve models only)
-    if (splitConfigVariable.size() != expectedConfigVariableComponents)
-        throw std::runtime_error("E: .ConfigVariable::ConfigVariable : unexpected number of components for raw "
-                                 "config variable " + rawConfigVariable);
-    else
-        {
-            m_basename = splitConfigVariable[0];
-            m_transformationCode = splitConfigVariable[1];
-            m_lag = static_cast<unsigned int>(atoi(splitConfigVariable[2].c_str()));
-            m_transformationTypePtr = Global::TransformationTypeCodeFactoryMapping::instance() ->
-                    getMapping().at(m_transformationCode) -> create();
-        }
+    m_strsplit.split(rawConfigVariable, m_delimiter);
+    m_transformationTypePtr = Global::TransformationTypeCodeFactoryMapping::instance() ->
+            getMapping().at(m_strsplit.getTransformationTypeCode()) -> create();
 }
+
+ConfigVariable::ConfigVariable(const std::string &rawConfigVariable) : ConfigVariable(rawConfigVariable, "|") {}
 
 std::string ConfigVariable::getBasename() const
 {
-    return m_basename;
+    return m_strsplit.getBasename();
 }
 
 std::string ConfigVariable::getTransformationTypeCode() const
 {
-    return m_transformationCode;
+    return m_strsplit.getTransformationTypeCode();
 }
 
 unsigned int ConfigVariable::getLagDependency() const
 {
-    return m_lag;
+    return m_strsplit.getLagDependency();
 }
 
 double ConfigVariable::getTransformedVariableValue(const Common::TimeSeries &ts, unsigned int index) const
 {
-    return m_transformationTypePtr -> getTransformedVariableValue(ts, index - m_lag);
+    const unsigned int lag = m_strsplit.getLagDependency();
+    return m_transformationTypePtr -> getTransformedVariableValue(ts, index - lag);
 }
 
 double ConfigVariable::getLevel(const Common::TimeSeries &ts, double transformedValue, unsigned int index) const
 {
-    return m_transformationTypePtr -> getLevel(ts, transformedValue, index - m_lag);
+    const unsigned int lag = m_strsplit.getLagDependency();
+    return m_transformationTypePtr -> getLevel(ts, transformedValue, index - lag);
 }
 
 
