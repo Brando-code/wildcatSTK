@@ -16,7 +16,7 @@ std::vector<std::string> StringSplit::split(const std::string &string, const std
 
 
 //StringSplitDecorator class hierarchy implementation
-StringSplitConfigVariableDecorator::StringSplitConfigVariableDecorator() : m_strplit() {}
+StringSplitDecorator::StringSplitDecorator() : m_strplit(), m_components() {}
 
 void StringSplitConfigVariableDecorator::split(const std::string& string, const std::string& pattern)
 {

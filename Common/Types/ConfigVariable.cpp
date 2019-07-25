@@ -5,7 +5,6 @@
 #include "ConfigVariable.h"
 #include "../../Global/Mappings/FactoryMappings.h"
 #include <cmath>
-#include <boost/algorithm/string.hpp>
 
 using namespace Common;
 

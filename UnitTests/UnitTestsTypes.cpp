@@ -15,14 +15,6 @@
 
 namespace utf = boost::unit_test;
 
-/*
-BOOST_AUTO_TEST_SUITE(emptySuite)
-    BOOST_AUTO_TEST_CASE(emptyTestID)
-    {
-        std::cout << "Empty Test" << std::endl;
-    }
-BOOST_AUTO_TEST_SUITE_END()
-*/
 
 BOOST_AUTO_TEST_SUITE(ConfigVariable)
     const double tol = 1e-10;

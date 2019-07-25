@@ -22,7 +22,7 @@ public:
 class Common::StringSplitDecorator
 {
 public:
-    StringSplitDecorator() = default;
+    StringSplitDecorator();
 
     virtual void split(const std::string& string, const std::string& pattern) = 0;
     virtual std::vector<std::string> get() const = 0;
@@ -31,14 +31,13 @@ public:
 
 protected:
     std::vector<std::string> m_components;
+    const Common::StringSplit m_strplit;
 };
 
 
 class Common::StringSplitConfigVariableDecorator : public Common::StringSplitDecorator
 {
 public:
-    StringSplitConfigVariableDecorator();
-
     void split(const std::string& string, const std::string& pattern) final;
 
     std::vector<std::string> get() const final;
@@ -46,8 +45,7 @@ public:
     std::string getTransformationTypeCode() const;
     unsigned int getLagDependency() const;
 
-private:
-    const Common::StringSplit m_strplit;
+
 };
 
 
