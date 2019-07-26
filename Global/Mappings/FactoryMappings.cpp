@@ -29,3 +29,12 @@ std::map<std::string, Common::TransformationTypeFactory *> TransformationTypeCod
 {
     return m_mapping;
 }
+
+Common::TransformationTypeFactory* TransformationTypeCodeFactoryMapping::getFactory(const std::string &transformationTypeCode) const
+{
+    if (m_mapping.find(transformationTypeCode) != m_mapping.end())
+        return m_mapping.at(transformationTypeCode);
+    else
+        throw std::out_of_range("E: Common::TransformationTypeFactory::getFactory : unknown transformation code " +
+                                transformationTypeCode);
+}

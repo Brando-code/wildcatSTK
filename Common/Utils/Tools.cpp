@@ -51,5 +51,10 @@ unsigned int StringSplitConfigVariableDecorator::getLagDependency() const
     const char* c_lagDependency = m_components[2].c_str();
     char* pEnd;
     const int base = 10;
-    return static_cast<unsigned int>(strtol(c_lagDependency, &pEnd, base));
+
+    const long lagDependency = strtol(c_lagDependency, &pEnd, base);
+    if (lagDependency <0)
+        throw std::runtime_error("E: StringSplitConfigVariableDecorator::getLagDependency: lag dependency must be a non-negative integer.");
+    else
+        return static_cast<unsigned int>(lagDependency);
 }

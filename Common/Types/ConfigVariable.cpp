@@ -72,7 +72,7 @@ ConfigVariable::ConfigVariable(const std::string &rawConfigVariable, const std::
 {
     m_strsplit.split(rawConfigVariable, m_delimiter);
     m_transformationTypePtr = Global::TransformationTypeCodeFactoryMapping::instance() ->
-            getMapping().at(m_strsplit.getTransformationTypeCode()) -> create();
+            getFactory(m_strsplit.getTransformationTypeCode()) -> create();
 }
 
 ConfigVariable::ConfigVariable(const std::string &rawConfigVariable) : ConfigVariable(rawConfigVariable, "|") {}

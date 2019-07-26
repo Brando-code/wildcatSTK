@@ -16,6 +16,7 @@ class Global::TransformationTypeCodeFactoryMapping
 public:
     static TransformationTypeCodeFactoryMapping* instance();
     std::map<std::string, Common::TransformationTypeFactory *> getMapping() const;
+    Common::TransformationTypeFactory* getFactory(const std::string& transformationTypeCode) const;
 
 private:
     TransformationTypeCodeFactoryMapping();

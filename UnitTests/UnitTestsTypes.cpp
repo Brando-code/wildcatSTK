@@ -103,6 +103,21 @@ BOOST_AUTO_TEST_SUITE(ConfigVariable)
         BOOST_TEST(cv.getLevel(fx.getTimeSeries(), expectedTransformedValue, index) == fx.getTimeSeries().getValues().at(index - 2));
     }
 
+    BOOST_AUTO_TEST_CASE(ConfigVariable_badTransformationCode)
+    {
+        const Fixture fx = Fixture();
+        const std::string rawConfigVariable = "US_GDP|X|2";
+        BOOST_CHECK_THROW(Common::ConfigVariable cv(rawConfigVariable), std::out_of_range);
+    }
+
+    BOOST_AUTO_TEST_CASE(ConfigVariable_badLagDependency)
+    {
+        const Fixture fx = Fixture();
+        const std::string rawConfigVariable = "US_GDP|LR|-100";
+        const Common::ConfigVariable cv = Common::ConfigVariable(rawConfigVariable);
+        BOOST_CHECK_THROW(cv.getLagDependency(), std::runtime_error);
+    }
+
     BOOST_AUTO_TEST_CASE(TimeSeries_dates_all)
     {
         const Fixture fx = Fixture();
