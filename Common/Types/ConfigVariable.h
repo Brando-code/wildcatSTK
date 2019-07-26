@@ -66,13 +66,6 @@ class Common::LogReturnTransformation : public Common::TransformationType
 };
 
 
-class Common::LevelTransformation : public Common::TransformationType
-{
-    double getTransformedVariableValue(const TimeSeries& ts, unsigned int index) const final;
-    double getLevel(const TimeSeries& ts, double transformedValue, unsigned int index) const final;
-};
-
-
 //Abstract factory class hierarchy declaration
 class Common::TransformationTypeFactory
 {

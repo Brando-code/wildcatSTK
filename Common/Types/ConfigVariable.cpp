@@ -11,7 +11,6 @@ using namespace Common;
 //TransformationType class hierarchy implementation
 double FirstDifferenceTransformation::getTransformedVariableValue(const TimeSeries &ts, unsigned int index) const
 {
-    //return ts.getValues().at(index) - ts.getValues().at(index - 1);
     return ts.getValue(index) - ts.getValue(index - 1);
 }
 
@@ -44,16 +43,6 @@ double LogReturnTransformation::getLevel(const TimeSeries &ts, double transforme
     return exp(transformedValue) * ts.getValue(index - 1);
 }
 
-double LevelTransformation::getTransformedVariableValue(const TimeSeries &ts, unsigned int index) const
-{
-    return ts.getValue(index);
-}
-
-double LevelTransformation::getLevel(const TimeSeries &ts, double transformedValue, unsigned int index) const
-{
-    return ts.getValue(index);
-}
-
 
 //TransformationType class hierarchy implementation
 std::unique_ptr<TransformationType> FirstDifferenceTransformationFactory::create() const
@@ -73,7 +62,8 @@ std::unique_ptr<TransformationType> LogReturnTransformationFactory::create() con
 
 std::unique_ptr<TransformationType> LevelTransformationFactory::create() const
 {
-    return std::make_unique<LevelTransformation>(LevelTransformation());
+    //return std::make_unique<LevelTransformation>(LevelTransformation());
+    return nullptr;
 }
 
 
@@ -105,13 +95,19 @@ unsigned int ConfigVariable::getLagDependency() const
 double ConfigVariable::getTransformedVariableValue(const Common::TimeSeries &ts, unsigned int index) const
 {
     const unsigned int lag = m_strsplit.getLagDependency();
-    return m_transformationTypePtr -> getTransformedVariableValue(ts, index - lag);
+    if (m_transformationTypePtr)
+        return m_transformationTypePtr -> getTransformedVariableValue(ts, index - lag);
+    else
+        return ts.getValue(index - lag);
 }
 
 double ConfigVariable::getLevel(const Common::TimeSeries &ts, double transformedValue, unsigned int index) const
 {
     const unsigned int lag = m_strsplit.getLagDependency();
-    return m_transformationTypePtr -> getLevel(ts, transformedValue, index - lag);
+    if (m_transformationTypePtr)
+        return m_transformationTypePtr -> getLevel(ts, transformedValue, index - lag);
+    else
+        return ts.getValue(index - lag);
 }
 
 
