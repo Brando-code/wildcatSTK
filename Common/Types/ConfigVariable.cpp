@@ -11,18 +11,19 @@ using namespace Common;
 //TransformationType class hierarchy implementation
 double FirstDifferenceTransformation::getTransformedVariableValue(const TimeSeries &ts, unsigned int index) const
 {
-    return ts.getValues().at(index) - ts.getValues().at(index - 1);
+    //return ts.getValues().at(index) - ts.getValues().at(index - 1);
+    return ts.getValue(index) - ts.getValue(index - 1);
 }
 
 double FirstDifferenceTransformation::getLevel(const TimeSeries &ts, double transformedValue, unsigned int index) const
 {
-    return transformedValue + ts.getValues().at(index - 1);
+    return transformedValue + ts.getValue(index - 1);
 }
 
 double SimpleReturnTransformation::getTransformedVariableValue(const TimeSeries &ts, unsigned int index) const
 {
-    if (ts.getValues().at(index - 1) != 0)
-        return ts.getValues().at(index)/ts.getValues().at(index - 1) - 1;
+    if (ts.getValue(index - 1) != 0)
+        return ts.getValue(index)/ts.getValue(index - 1) - 1;
     else
         throw std::overflow_error("E: SimpleReturnTransformation::getTransformedVariableValue : Division by zero error for variable " +
         ts.getName() + " at index " + std::to_string(index));
@@ -30,27 +31,27 @@ double SimpleReturnTransformation::getTransformedVariableValue(const TimeSeries 
 
 double SimpleReturnTransformation::getLevel(const TimeSeries &ts, double transformedValue, unsigned int index) const
 {
-    return ts.getValues().at(index - 1) * (1 + transformedValue);
+    return ts.getValue(index - 1) * (1 + transformedValue);
 }
 
 double LogReturnTransformation::getTransformedVariableValue(const TimeSeries &ts, unsigned int index) const
 {
-    return log(ts.getValues().at(index)) - log(ts.getValues().at(index - 1));
+    return log(ts.getValue(index)) - log(ts.getValue(index - 1));
 }
 
 double LogReturnTransformation::getLevel(const TimeSeries &ts, double transformedValue, unsigned int index) const
 {
-    return exp(transformedValue) * ts.getValues().at(index - 1);
+    return exp(transformedValue) * ts.getValue(index - 1);
 }
 
 double LevelTransformation::getTransformedVariableValue(const TimeSeries &ts, unsigned int index) const
 {
-    return ts.getValues().at(index);
+    return ts.getValue(index);
 }
 
 double LevelTransformation::getLevel(const TimeSeries &ts, double transformedValue, unsigned int index) const
 {
-    return ts.getValues().at(index);
+    return ts.getValue(index);
 }
 
 

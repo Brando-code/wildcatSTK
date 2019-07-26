@@ -8,6 +8,7 @@
 namespace Common
 {
     class TimeSeries;
+    class DataSet;
     class ConfigVariable;
 
     class TransformationType;

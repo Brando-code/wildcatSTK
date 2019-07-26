@@ -20,11 +20,14 @@ BOOST_AUTO_TEST_SUITE(ConfigVariable)
     const double tol = 1e-10;
     struct Fixture
     {
-        Fixture() : f_variableName("US_GDP"), f_values({234.0, 346.0, 447.0, 531.0}),f_ts(f_variableName, f_values) {}
+        Fixture() : f_variableName("US_GDP"), f_values({234.0, 346.0, 447.0, 531.0}), f_ts(f_variableName, f_values, f_dates),
+                    f_dates({boost::gregorian::from_string("2017/03/31"), boost::gregorian::from_string("2017/06/30"),
+                             boost::gregorian::from_string("2017/09/30"), boost::gregorian::from_string("2017/12/31")}) {}
         ~Fixture() = default;
 
         Common::TimeSeries getTimeSeries() const { return f_ts;};
 
+        const std::vector<boost::gregorian::date> f_dates;
         const std::string f_variableName;
         const std::vector<double> f_values;
         const Common::TimeSeries f_ts;
@@ -82,5 +85,51 @@ BOOST_AUTO_TEST_SUITE(ConfigVariable)
         BOOST_TEST(cv.getTransformedVariableValue(fx.getTimeSeries(), index) == expectedTransformedValue);
         BOOST_TEST(cv.getLevel(fx.getTimeSeries(), expectedTransformedValue, index) == fx.getTimeSeries().getValues().at(index - 2));
     }
+
+    BOOST_AUTO_TEST_CASE(TimeSeries_dates_all)
+    {
+        const Fixture fx = Fixture();
+        const boost::gregorian::date inRangeDate = boost::gregorian::date(2017, 03, 31);
+        const boost::gregorian::date outRangeDate = boost::gregorian::date(2019, 03, 31);
+
+        const unsigned int expectedIndex = 0;
+        BOOST_CHECK_EQUAL(fx.getTimeSeries().getIndex(inRangeDate), expectedIndex);
+        BOOST_CHECK_EQUAL(fx.getTimeSeries().getValue(inRangeDate), fx.getTimeSeries().getValue(expectedIndex));
+        BOOST_CHECK_THROW(fx.getTimeSeries().getIndex(outRangeDate), std::out_of_range);
+    }
 BOOST_AUTO_TEST_SUITE_END()
+
+
+BOOST_AUTO_TEST_SUITE(DataSet)
+    BOOST_AUTO_TEST_CASE(DataSet_all)
+    {
+        const std::string variableName = "US_GDP";
+        const std::string otherVariableName = "UK_CPI";
+
+        const std::vector<double> values = {234.0, 346.0, 447.0, 531.0};
+        const std::vector<double> otherValues = {100.0, 98.0, 101.0, 105.45, 104.567};
+
+        const std::vector<boost::gregorian::date> dates = {boost::gregorian::from_string("2017/03/31"), boost::gregorian::from_string("2017/06/30"),
+                                                           boost::gregorian::from_string("2017/09/30"), boost::gregorian::from_string("2017/12/31")};
+        const std::vector<boost::gregorian::date> otherDates = {boost::gregorian::from_string("2017/03/31"), boost::gregorian::from_string("2017/06/30"),
+                                                                boost::gregorian::from_string("2017/09/30"), boost::gregorian::from_string("2017/12/31"),
+                                                                boost::gregorian::from_string("2018/03/31")};
+
+        const Common::TimeSeries ts(variableName, values, dates), otherTs(otherVariableName, otherValues, otherDates);
+
+        Common::DataSet ds;
+        ds.addData(ts), ds.addData(otherTs);
+
+        const boost::gregorian::date inRangeDate = boost::gregorian::date(2017, 12, 31);
+        const boost::gregorian::date otherInRangeDate = boost::gregorian::date(2018, 03, 31);
+
+        BOOST_CHECK_EQUAL(ds.getValue(variableName, inRangeDate), values[3]);
+        BOOST_CHECK_EQUAL(ds.getValue(otherVariableName, otherInRangeDate), otherValues[4]);
+
+        ds.removeData(otherVariableName);
+        BOOST_CHECK_EQUAL(ds.getData().size(), 1);
+        BOOST_CHECK(ds.getData().at(variableName) == ts);
+    }
+BOOST_AUTO_TEST_SUITE_END()
+
 #pragma clang diagnostic pop

@@ -48,5 +48,8 @@ std::string StringSplitConfigVariableDecorator::getTransformationTypeCode() cons
 
 unsigned int StringSplitConfigVariableDecorator::getLagDependency() const
 {
-    return static_cast<unsigned int>(atoi(m_components[2].c_str()));
+    const char* c_lagDependency = m_components[2].c_str();
+    char* pEnd;
+    const int base = 10;
+    return static_cast<unsigned int>(strtol(c_lagDependency, &pEnd, base));
 }

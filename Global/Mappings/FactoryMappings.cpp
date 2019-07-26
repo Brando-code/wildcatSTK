@@ -11,10 +11,10 @@ TransformationTypeCodeFactoryMapping* TransformationTypeCodeFactoryMapping::m_in
 TransformationTypeCodeFactoryMapping::TransformationTypeCodeFactoryMapping()
 {
     const std::vector<std::string> allowedTransformationCodes = {"D", "R", "L", "LR"};
-    m_mapping[allowedTransformationCodes[0]] = new Common::FirstDifferenceTransformationFactory();
-    m_mapping[allowedTransformationCodes[1]] = new Common::SimpleReturnTransformationFactory();
-    m_mapping[allowedTransformationCodes[2]] = new Common::LevelTransformationFactory();
-    m_mapping[allowedTransformationCodes[3]] = new Common::LogReturnTransformationFactory();
+    m_mapping.emplace(allowedTransformationCodes[0], new Common::FirstDifferenceTransformationFactory());
+    m_mapping.emplace(allowedTransformationCodes[1], new Common::SimpleReturnTransformationFactory());
+    m_mapping.emplace(allowedTransformationCodes[2], new Common::LevelTransformationFactory());
+    m_mapping.emplace(allowedTransformationCodes[3], new Common::LogReturnTransformationFactory());
 }
 
 TransformationTypeCodeFactoryMapping* TransformationTypeCodeFactoryMapping::instance()
