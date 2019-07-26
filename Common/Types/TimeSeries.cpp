@@ -33,7 +33,10 @@ const std::vector<boost::gregorian::date> TimeSeries::getDates() const
 
 double TimeSeries::getValue(unsigned int index) const
 {
-    return m_data.at(index);
+    if (index < m_data.size())
+        return m_data.at(index);
+    else
+        throw std::out_of_range("E: TimeSeries::getValue : index " + std::to_string(index) + " is not in range.");
 }
 
 double TimeSeries::getValue(const boost::gregorian::date& date) const
@@ -96,10 +99,15 @@ void DataSet::removeData(const std::string &variableName)
 
 double DataSet::getValue(const std::string &variableName, unsigned int index) const
 {
-    return m_data.at(variableName).getValue(index);
+    if (m_data.find(variableName) != m_data.end())
+        return m_data.at(variableName).getValue(index);
+    else
+        throw std::runtime_error("E: DataSet::getValue : variable " + variableName + " is not in the data set.");
 }
 
 double DataSet::getValue(const std::string &variableName, const boost::gregorian::date &date) const
 {
-    return m_data.at(variableName).getValue(date);
+    if (m_data.find(variableName) != m_data.end())
+        return m_data.at(variableName).getValue(date);
+    throw std::runtime_error("E: DataSet::getValue : variable " + variableName + " is not in the data set.");
 }
