@@ -8,7 +8,7 @@
 #include <string>
 #include <memory>
 #include "../Common.h"
-#include "../Utils/Tools.h"
+#include "../Utils/General/Tools.h"
 #include "../Types/TimeSeries.h"
 
 
@@ -28,6 +28,9 @@ public:
     double getTransformedValue(const TimeSeries& ts, unsigned int index) const;
     double getLevel(const TimeSeries& ts, double transformedValue, unsigned int index) const;
     std::vector<double> getTransformedTimeSeriesValues(const TimeSeries& ts) const;
+
+    bool operator==(const Common::ConfigVariable& other) const;
+    bool operator!=(const Common::ConfigVariable& other) const;
 
 private:
     Common::StringSplitConfigVariableDecorator m_strsplit;

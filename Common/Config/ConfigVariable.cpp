@@ -150,4 +150,15 @@ std::vector<double> ConfigVariable::getTransformedTimeSeriesValues(const Common:
     return transformedValues;
 }
 
+bool ConfigVariable::operator==(const Common::ConfigVariable &other) const
+{
+    return m_strsplit.getBasename() == other.m_strsplit.getBasename() and
+           m_strsplit.getTransformationTypeCode() == other.m_strsplit.getTransformationTypeCode() and
+           m_strsplit.getLagDependency() == other.m_strsplit.getLagDependency() and
+           m_delimiter == other.m_delimiter;
+}
 
+bool ConfigVariable::operator!=(const Common::ConfigVariable &other) const
+{
+    return !(*this == other);
+}

@@ -49,6 +49,11 @@ BOOST_AUTO_TEST_SUITE(ConfigVariable)
         const double expectedTransformedValue = fx.getTimeSeries().getValues().at(index-1) - fx.getTimeSeries().getValues().at(index-2);
         BOOST_CHECK_EQUAL(cv.getTransformedValue(fx.getTimeSeries(), index), expectedTransformedValue);
         BOOST_CHECK_EQUAL(cv.getLevel(fx.getTimeSeries(), expectedTransformedValue, index), fx.getTimeSeries().getValues().at(index-1));
+
+        const std::vector<double> expectedTransformedValues = {fx.getTimeSeries().getValue(index - 1) - fx.getTimeSeries().getValue(index - 2),
+                                                               fx.getTimeSeries().getValue(index) - fx.getTimeSeries().getValue(index - 1)};
+        BOOST_TEST(cv.getTransformedTimeSeriesValues(fx.getTimeSeries()) == expectedTransformedValues);
+
     }
 
 
@@ -67,6 +72,11 @@ BOOST_AUTO_TEST_SUITE(ConfigVariable)
         const double expectedTransformedValue = fx.getTimeSeries().getValues().at(index) / fx.getTimeSeries().getValues().at(index-1) - 1;
         BOOST_TEST(cv.getTransformedValue(fx.getTimeSeries(), index) == expectedTransformedValue);
         BOOST_TEST(cv.getLevel(fx.getTimeSeries(), expectedTransformedValue, index) == fx.getTimeSeries().getValues().at(index));
+
+        const std::vector<double> expectedTransformedValues = {fx.getTimeSeries().getValue(index - 1) / fx.getTimeSeries().getValue(index - 2) - 1,
+                                                               fx.getTimeSeries().getValue(index) / fx.getTimeSeries().getValue(index - 1) - 1,
+                                                               fx.getTimeSeries().getValue(index + 1) / fx.getTimeSeries().getValue(index) - 1};
+        BOOST_TEST(cv.getTransformedTimeSeriesValues(fx.getTimeSeries()) == expectedTransformedValues);
     }
 
     BOOST_AUTO_TEST_CASE(ConfigVariable_LogReturns_happyPath, *utf::tolerance(tol))
@@ -84,6 +94,9 @@ BOOST_AUTO_TEST_SUITE(ConfigVariable)
         const double expectedTransformedValue = log(fx.getTimeSeries().getValues().at(index - 2)) - log(fx.getTimeSeries().getValues().at(index - 3));
         BOOST_TEST(cv.getTransformedValue(fx.getTimeSeries(), index) == expectedTransformedValue);
         BOOST_TEST(cv.getLevel(fx.getTimeSeries(), expectedTransformedValue, index) == fx.getTimeSeries().getValues().at(index - 2));
+
+        const std::vector<double> expectedTransformedValues = {log(fx.getTimeSeries().getValue(1)) - log(fx.getTimeSeries().getValue(0))};
+        BOOST_TEST(cv.getTransformedTimeSeriesValues(fx.getTimeSeries()) == expectedTransformedValues);
     }
 
     BOOST_AUTO_TEST_CASE(ConfigVariable_Levels_happyPath, *utf::tolerance(tol))
@@ -161,7 +174,36 @@ BOOST_AUTO_TEST_SUITE(DataSet)
         ds.removeData(otherVariableName);
         BOOST_CHECK_EQUAL(ds.getData().size(), 1);
         BOOST_CHECK(ds.getData().at(variableName) == ts);
+        BOOST_CHECK(ds.getTimeSeries(variableName) == ts);
     }
+BOOST_AUTO_TEST_SUITE_END()
+
+
+BOOST_AUTO_TEST_SUITE(ConfigModelSpec)
+    struct Fixture
+    {
+        Fixture() : f_dv("DOW_JONES|R|0"), f_ivs({Common::ConfigVariable("US_GDP|R|0"), Common::ConfigVariable("WTI|R|1")}),
+                    f_m(), f_modelSubType(), f_startDate() {}
+
+
+        const Common::ConfigVariable f_dv;
+        const std::vector<Common::ConfigVariable> f_ivs;
+        int f_m;
+        std::string f_modelSubType;
+        boost::gregorian::date f_startDate;
+    };
+
+    BOOST_AUTO_TEST_CASE(ConfigModelSpec_relative_happyPath)
+    {
+        Fixture fx;
+        fx.f_modelSubType = "growth";
+        fx.f_m = 1;
+
+        Common::ConfigModelSpecRelative cms(fx.f_dv, fx.f_ivs, fx.f_modelSubType, fx.f_m);
+        BOOST_CHECK(cms.getDependentVariable() == fx.f_dv);
+        BOOST_CHECK(cms.getIndependentVariables() == fx.f_ivs);
+    }
+
 BOOST_AUTO_TEST_SUITE_END()
 
 #pragma clang diagnostic pop

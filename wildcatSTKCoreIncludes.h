@@ -6,6 +6,8 @@
 #define QUANTLIB_WILDCATSTKCOREINCLUDES_H
 
 #include "Common/Config/ConfigVariable.h"
+#include "Common/Config/ConfigModelSpec.h"
+
 #include "Common/Types/TimeSeries.h"
 #include "Common/Types/DataSet.h"
 
