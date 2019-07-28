@@ -9,7 +9,8 @@
 #include <string>
 #include <map>
 #include "../Global.h"
-#include "../../Common/Types/ConfigVariable.h"
+#include "../../Common/Config/ConfigVariable.h"
+#include "../../Common/Math/Relative/RelativeModel.h"
 
 class Global::TransformationTypeCodeFactoryMapping
 {
@@ -24,5 +25,17 @@ private:
     std::map<std::string, Common::TransformationTypeFactory*> m_mapping;
 };
 
+class Global::RelativeModelFactoryMapping
+{
+public:
+    static RelativeModelFactoryMapping* instance();
+    std::map<std::string, Math::RelativeModelFactory *> getMapping() const;
+    Math::RelativeModelFactory* getFactory(const std::string& relativeModelSubTypeName) const;
+
+private:
+    RelativeModelFactoryMapping();
+    static RelativeModelFactoryMapping* m_instance;
+    std::map<std::string, Math::RelativeModelFactory*> m_mapping;
+};
 
 #endif //WILDCATSTKCORE_FACTORYMAPPINGS_H

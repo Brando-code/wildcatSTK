@@ -5,8 +5,9 @@
 #ifndef QUANTLIB_WILDCATSTKCOREINCLUDES_H
 #define QUANTLIB_WILDCATSTKCOREINCLUDES_H
 
-#include "Common/Types/ConfigVariable.h"
+#include "Common/Config/ConfigVariable.h"
 #include "Common/Types/TimeSeries.h"
+#include "Common/Types/DataSet.h"
 
 #include "Global/Mappings/FactoryMappings.h"
 

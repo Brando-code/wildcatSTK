@@ -9,7 +9,7 @@
 #include <memory>
 #include "../Common.h"
 #include "../Utils/Tools.h"
-#include "TimeSeries.h"
+#include "../Types/TimeSeries.h"
 
 
 //ConfigVariable class declaration
@@ -18,17 +18,20 @@ class Common::ConfigVariable
 public:
     explicit ConfigVariable(const std::string& rawConfigVariable);
     ConfigVariable(const std::string& rawConfigVariable, const std::string& delimiter);
+    ConfigVariable(const ConfigVariable& other);
+    //ConfigVariable& operator=(const ConfigVariable& other);
 
     std::string getBasename() const;
     std::string getTransformationTypeCode() const;
     unsigned int getLagDependency() const;
 
-    double getTransformedVariableValue(const TimeSeries& ts, unsigned int index) const;
+    double getTransformedValue(const TimeSeries& ts, unsigned int index) const;
     double getLevel(const TimeSeries& ts, double transformedValue, unsigned int index) const;
+    std::vector<double> getTransformedTimeSeriesValues(const TimeSeries& ts) const;
 
 private:
     Common::StringSplitConfigVariableDecorator m_strsplit;
-    const std::string m_delimiter;
+    std::string m_delimiter;
     std::unique_ptr<Common::TransformationType> m_transformationTypePtr;
 
 };
@@ -38,8 +41,10 @@ private:
 class Common::TransformationType
 {
 public:
-    virtual double getTransformedVariableValue(const TimeSeries& ts, unsigned int index) const = 0;
+    virtual double getTransformedValue(const TimeSeries& ts, unsigned int index) const = 0;
     virtual double getLevel(const TimeSeries& ts, double transformedValue, unsigned int index) const = 0;
+
+    virtual std::unique_ptr<Common::TransformationType> clone() const = 0;
 
     virtual ~TransformationType() = default;
 };
@@ -47,22 +52,28 @@ public:
 
 class Common::FirstDifferenceTransformation : public Common::TransformationType
 {
-    double getTransformedVariableValue(const TimeSeries& ts, unsigned int index) const final;
+    double getTransformedValue(const TimeSeries& ts, unsigned int index) const final;
     double getLevel(const TimeSeries& ts, double transformedValue, unsigned int index) const final;
+
+    std::unique_ptr<Common::TransformationType> clone() const final;
 };
 
 
 class Common::SimpleReturnTransformation : public Common::TransformationType
 {
-    double getTransformedVariableValue(const TimeSeries& ts, unsigned int index) const final;
+    double getTransformedValue(const TimeSeries& ts, unsigned int index) const final;
     double getLevel(const TimeSeries& ts, double transformedValue, unsigned int index) const final;
+
+    std::unique_ptr<Common::TransformationType> clone() const final;
 };
 
 
 class Common::LogReturnTransformation : public Common::TransformationType
 {
-    double getTransformedVariableValue(const TimeSeries& ts, unsigned int index) const final;
+    double getTransformedValue(const TimeSeries& ts, unsigned int index) const final;
     double getLevel(const TimeSeries& ts, double transformedValue, unsigned int index) const final;
+
+    std::unique_ptr<Common::TransformationType> clone() const final;
 };
 
 

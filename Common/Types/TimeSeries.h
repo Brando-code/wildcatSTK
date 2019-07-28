@@ -37,21 +37,4 @@ private:
 };
 
 
-class Common::DataSet
-{
-public:
-    DataSet() = default;
-    explicit DataSet(const std::vector<Common::TimeSeries>& ts);
-
-    void addData(const Common::TimeSeries& otherTs);
-    void removeData(const std::string& variableName);
-    const std::unordered_map<std::string, Common::TimeSeries> getData() const;
-
-    double getValue(const std::string& variableName, unsigned int index) const;
-    double getValue(const std::string& variableName, const boost::gregorian::date& date) const;
-
-private:
-    std::unordered_map<std::string, Common::TimeSeries> m_data;
-};
-
 #endif //WILDCATSTKCORE_TIMESERIES_H

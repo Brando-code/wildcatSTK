@@ -47,7 +47,7 @@ BOOST_AUTO_TEST_SUITE(ConfigVariable)
 
         const unsigned int index = 2;
         const double expectedTransformedValue = fx.getTimeSeries().getValues().at(index-1) - fx.getTimeSeries().getValues().at(index-2);
-        BOOST_CHECK_EQUAL(cv.getTransformedVariableValue(fx.getTimeSeries(), index), expectedTransformedValue);
+        BOOST_CHECK_EQUAL(cv.getTransformedValue(fx.getTimeSeries(), index), expectedTransformedValue);
         BOOST_CHECK_EQUAL(cv.getLevel(fx.getTimeSeries(), expectedTransformedValue, index), fx.getTimeSeries().getValues().at(index-1));
     }
 
@@ -65,7 +65,7 @@ BOOST_AUTO_TEST_SUITE(ConfigVariable)
 
         const unsigned int index = 2;
         const double expectedTransformedValue = fx.getTimeSeries().getValues().at(index) / fx.getTimeSeries().getValues().at(index-1) - 1;
-        BOOST_TEST(cv.getTransformedVariableValue(fx.getTimeSeries(), index) == expectedTransformedValue);
+        BOOST_TEST(cv.getTransformedValue(fx.getTimeSeries(), index) == expectedTransformedValue);
         BOOST_TEST(cv.getLevel(fx.getTimeSeries(), expectedTransformedValue, index) == fx.getTimeSeries().getValues().at(index));
     }
 
@@ -82,7 +82,7 @@ BOOST_AUTO_TEST_SUITE(ConfigVariable)
 
         const unsigned int index = 3;
         const double expectedTransformedValue = log(fx.getTimeSeries().getValues().at(index - 2)) - log(fx.getTimeSeries().getValues().at(index - 3));
-        BOOST_TEST(cv.getTransformedVariableValue(fx.getTimeSeries(), index) == expectedTransformedValue);
+        BOOST_TEST(cv.getTransformedValue(fx.getTimeSeries(), index) == expectedTransformedValue);
         BOOST_TEST(cv.getLevel(fx.getTimeSeries(), expectedTransformedValue, index) == fx.getTimeSeries().getValues().at(index - 2));
     }
 
@@ -99,7 +99,7 @@ BOOST_AUTO_TEST_SUITE(ConfigVariable)
 
         const unsigned int index = 3;
         const double expectedTransformedValue = fx.getTimeSeries().getValues().at(index - 2);
-        BOOST_TEST(cv.getTransformedVariableValue(fx.getTimeSeries(), index) == expectedTransformedValue);
+        BOOST_TEST(cv.getTransformedValue(fx.getTimeSeries(), index) == expectedTransformedValue);
         BOOST_TEST(cv.getLevel(fx.getTimeSeries(), expectedTransformedValue, index) == fx.getTimeSeries().getValues().at(index - 2));
     }
 

@@ -44,8 +44,6 @@ public:
     std::string getBasename() const;
     std::string getTransformationTypeCode() const;
     unsigned int getLagDependency() const;
-
-
 };
 
 

@@ -38,3 +38,35 @@ Common::TransformationTypeFactory* TransformationTypeCodeFactoryMapping::getFact
         throw std::out_of_range("E: Common::TransformationTypeFactory::getFactory : unknown transformation code " +
                                 transformationTypeCode);
 }
+
+
+RelativeModelFactoryMapping* RelativeModelFactoryMapping::m_instance = nullptr;
+
+RelativeModelFactoryMapping::RelativeModelFactoryMapping()
+{
+    const std::vector<std::string> allowedRelativeSubTypeNames = {"growth", "volatility"};
+    m_mapping.emplace(allowedRelativeSubTypeNames[0], new Math::RelativeGrowthModelFactory());
+    //add volatility mapping when available..
+}
+
+RelativeModelFactoryMapping* RelativeModelFactoryMapping::instance()
+{
+    if (!m_instance)
+        m_instance = new RelativeModelFactoryMapping();
+
+    return m_instance;
+}
+
+std::map<std::string, Math::RelativeModelFactory *> RelativeModelFactoryMapping::getMapping() const
+{
+    return m_mapping;
+}
+
+Math::RelativeModelFactory* RelativeModelFactoryMapping::getFactory(const std::string &relativeModelSubTypeName) const
+{
+    if (m_mapping.find(relativeModelSubTypeName) != m_mapping.end())
+        return m_mapping.at(relativeModelSubTypeName);
+    else
+        throw std::out_of_range("E: Common::TransformationTypeFactory::getFactory : unknown transformation code " +
+                                relativeModelSubTypeName);
+}

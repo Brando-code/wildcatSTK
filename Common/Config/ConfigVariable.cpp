@@ -9,7 +9,7 @@
 using namespace Common;
 
 //TransformationType class hierarchy implementation
-double FirstDifferenceTransformation::getTransformedVariableValue(const TimeSeries &ts, unsigned int index) const
+double FirstDifferenceTransformation::getTransformedValue(const TimeSeries &ts, unsigned int index) const
 {
     return ts.getValue(index) - ts.getValue(index - 1);
 }
@@ -19,7 +19,12 @@ double FirstDifferenceTransformation::getLevel(const TimeSeries &ts, double tran
     return transformedValue + ts.getValue(index - 1);
 }
 
-double SimpleReturnTransformation::getTransformedVariableValue(const TimeSeries &ts, unsigned int index) const
+std::unique_ptr<Common::TransformationType> FirstDifferenceTransformation::clone() const
+{
+    return std::make_unique<Common::FirstDifferenceTransformation>(*this);
+}
+
+double SimpleReturnTransformation::getTransformedValue(const TimeSeries &ts, unsigned int index) const
 {
     if (ts.getValue(index - 1) != 0)
         return ts.getValue(index)/ts.getValue(index - 1) - 1;
@@ -33,7 +38,12 @@ double SimpleReturnTransformation::getLevel(const TimeSeries &ts, double transfo
     return ts.getValue(index - 1) * (1 + transformedValue);
 }
 
-double LogReturnTransformation::getTransformedVariableValue(const TimeSeries &ts, unsigned int index) const
+std::unique_ptr<Common::TransformationType> SimpleReturnTransformation::clone() const
+{
+    return std::make_unique<Common::SimpleReturnTransformation>(*this);
+}
+
+double LogReturnTransformation::getTransformedValue(const TimeSeries &ts, unsigned int index) const
 {
     return log(ts.getValue(index)) - log(ts.getValue(index - 1));
 }
@@ -43,6 +53,10 @@ double LogReturnTransformation::getLevel(const TimeSeries &ts, double transforme
     return exp(transformedValue) * ts.getValue(index - 1);
 }
 
+std::unique_ptr<Common::TransformationType> LogReturnTransformation::clone() const
+{
+    return std::make_unique<Common::LogReturnTransformation>(*this);
+}
 
 //TransformationType class hierarchy implementation
 std::unique_ptr<TransformationType> FirstDifferenceTransformationFactory::create() const
@@ -77,6 +91,21 @@ ConfigVariable::ConfigVariable(const std::string &rawConfigVariable, const std::
 
 ConfigVariable::ConfigVariable(const std::string &rawConfigVariable) : ConfigVariable(rawConfigVariable, "|") {}
 
+ConfigVariable::ConfigVariable(const Common::ConfigVariable &other) :
+        m_strsplit(other.m_strsplit), m_delimiter(other.m_delimiter),
+        m_transformationTypePtr(other.m_transformationTypePtr -> clone()) {}
+/*
+ConfigVariable& ConfigVariable::operator=(const Common::ConfigVariable &other)
+{
+    if (&other != this)
+    {
+        m_strsplit = other.m_strsplit;
+        m_delimiter = other.m_delimiter;
+        m_transformationTypePtr = other.m_transformationTypePtr -> clone();
+    }
+    return *this;
+}
+*/
 std::string ConfigVariable::getBasename() const
 {
     return m_strsplit.getBasename();
@@ -92,11 +121,11 @@ unsigned int ConfigVariable::getLagDependency() const
     return m_strsplit.getLagDependency();
 }
 
-double ConfigVariable::getTransformedVariableValue(const Common::TimeSeries &ts, unsigned int index) const
+double ConfigVariable::getTransformedValue(const Common::TimeSeries &ts, unsigned int index) const
 {
     const unsigned int lag = m_strsplit.getLagDependency();
     if (m_transformationTypePtr)
-        return m_transformationTypePtr -> getTransformedVariableValue(ts, index - lag);
+        return m_transformationTypePtr -> getTransformedValue(ts, index - lag);
     else
         return ts.getValue(index - lag);
 }
@@ -107,9 +136,18 @@ double ConfigVariable::getLevel(const Common::TimeSeries &ts, double transformed
     if (m_transformationTypePtr)
         return m_transformationTypePtr -> getLevel(ts, transformedValue, index - lag);
     else
-        return ts.getValue(index - lag);
+        return transformedValue;
 }
 
+std::vector<double> ConfigVariable::getTransformedTimeSeriesValues(const Common::TimeSeries &ts) const
+{
+    const unsigned int firstValidIndex = m_strsplit.getLagDependency() + 1;
+    std::vector<double> transformedValues;
 
+    for (unsigned int i = firstValidIndex; i < ts.getValues().size(); ++i)
+        transformedValues.push_back(getTransformedValue(ts, i));
+
+    return transformedValues;
+}
 
 

@@ -8,6 +8,7 @@
 namespace Global
 {
     class TransformationTypeCodeFactoryMapping;
+    class RelativeModelFactoryMapping;
 }
 
 #endif //WILDCATSTKCORE_GLOBAL_H

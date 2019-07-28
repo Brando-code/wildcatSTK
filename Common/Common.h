@@ -10,12 +10,14 @@ namespace Common
     class TimeSeries;
     class DataSet;
     class ConfigVariable;
+    class ConfigModelSpec;
+    class ConfigModelSpecRelative;
 
     class TransformationType;
     class FirstDifferenceTransformation;
     class SimpleReturnTransformation;
     class LogReturnTransformation;
-    class LevelTransformation;
+    //class LevelTransformation;
 
     class TransformationTypeFactory;
     class FirstDifferenceTransformationFactory;
