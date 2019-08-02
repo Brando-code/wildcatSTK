@@ -18,26 +18,30 @@ outputRelativePath = "JSONOutputs/"
 outputFileName = inputFileName.split(".")[0] + ".json"
 
 excelData = pd.read_excel(inputRelativePath + inputFileName)
-dataList = list()
+dataDict = dict()
 
 dateColumnHeader = excelData.columns[0]
+valuesKeyName = "Values"
+# variableKeyName = "VariableName"
+datesKeyName = "Dates"
 
 for column in excelData.columns:
     if column == dateColumnHeader:
         pass
     else:
-        record_asDf = pd.DataFrame()
-        record_asDf[dateColumnHeader] = excelData[dateColumnHeader]
-        record_asDf[column] = excelData[column]
-        record_asDf.dropna(inplace=True)
+        node_asDf = pd.DataFrame()
+        node_asDf[dateColumnHeader] = excelData[dateColumnHeader]
+        node_asDf[column] = excelData[column]
+        node_asDf.dropna(inplace=True)
 
-        record = OrderedDict()
-        record[dateColumnHeader] = record_asDf[dateColumnHeader].dt.strftime("%Y/%m/%d").tolist()
-        record[column] = record_asDf[column].tolist()
+        node = OrderedDict()
+        node[datesKeyName] = node_asDf[dateColumnHeader].dt.strftime("%Y-%m-%d").tolist()
+        node[valuesKeyName] = node_asDf[column].tolist()
+        # node[variableKeyName] = column
 
-        dataList.append(record)
+        dataDict[column] = node
 
-j = json.dumps(dataList, sort_keys=True, indent=4, separators=(',', ': '))
+j = json.dumps(dataDict, sort_keys=True, indent=4, separators=(',', ': '))
 
 print("Writing JSON to file: " + outputRelativePath + outputFileName)
 with open(outputRelativePath + outputFileName, 'w') as f:

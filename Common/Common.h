@@ -28,6 +28,11 @@ namespace Common
     class StringSplit;
     class StringSplitDecorator;
     class StringSplitConfigVariableDecorator;
+    class JSONParser;
+    class JSONParserDecorator;
+    class JSONParserDecoratorDataSet;
+    class CSVParser;
+    class CSVParserDataSet;
 }
 
 #endif //QUANTLIB_COMMON_H

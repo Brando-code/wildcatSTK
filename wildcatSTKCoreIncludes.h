@@ -11,6 +11,8 @@
 #include "Common/Types/TimeSeries.h"
 #include "Common/Types/DataSet.h"
 
+#include "Common/Utils/IO/JSONParser.h"
+
 #include "Global/Mappings/FactoryMappings.h"
 
 #endif //QUANTLIB_WILDCATSTKCOREINCLUDES_H

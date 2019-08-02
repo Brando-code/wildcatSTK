@@ -38,6 +38,11 @@ void DataSet::removeData(const std::string &variableName)
     m_data.erase(variableName);
 }
 
+void DataSet::clearAllData()
+{
+    m_data.clear();
+}
+
 double DataSet::getValue(const std::string &variableName, unsigned int index) const
 {
     if (m_data.find(variableName) != m_data.end())
@@ -59,3 +64,35 @@ TimeSeries DataSet::getTimeSeries(const std::string &variableName) const
         return m_data.at(variableName);
     throw std::runtime_error("E: DataSet::getValue : variable " + variableName + " is not in the data set.");
 }
+
+bool Common::DataSet::operator==(const Common::DataSet &other) const
+{
+    bool rv = true;
+    if (m_data.size() == other.m_data.size())
+    {
+        for (const auto& it: m_data)
+        {
+            if (other.m_data.find(it.first) != other.m_data.end() and it.second == other.m_data.at(it.first))
+                continue;
+            else
+            {
+                rv = false;
+                break;
+            }
+        }
+    }
+    else
+        rv = false;
+
+    return rv;
+}
+
+bool Common::DataSet::operator!=(const Common::DataSet &other) const
+{
+    return !(*this == other);
+}
+
+
+
+
+

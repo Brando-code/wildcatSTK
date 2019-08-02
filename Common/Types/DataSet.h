@@ -20,12 +20,16 @@ public:
 
     void addData(const Common::TimeSeries& otherTs);
     void removeData(const std::string& variableName);
+    void clearAllData();
     const std::unordered_map<std::string, Common::TimeSeries> getData() const;
 
     double getValue(const std::string& variableName, unsigned int index) const;
     double getValue(const std::string& variableName, const boost::gregorian::date& date) const;
 
     Common::TimeSeries getTimeSeries(const std::string& variableName) const;
+
+    bool operator==(const Common::DataSet& other) const;
+    bool operator!=(const Common::DataSet& other) const;
 
 private:
     std::unordered_map<std::string, Common::TimeSeries> m_data;
