@@ -4,29 +4,30 @@
 
 #include "TimeSeries.h"
 #include <iostream>
+#include <utility>
 
 using namespace Common;
 
 //TimeSeries class implementation
-TimeSeries::TimeSeries(const std::string &variableName, const std::vector<double> &variableData,
+TimeSeries::TimeSeries(std::string variableName, const std::vector<double> &variableData,
                        const std::vector<boost::gregorian::date> &dates) :
-        m_name(variableName), m_data(variableData), m_dates(dates)
+        m_name(std::move(variableName)), m_data(variableData), m_dates(dates)
 {
     if (variableData.size() != dates.size())
         throw std::runtime_error("E: TimeSeries::TimeSeries : TimeSeries object cannot be constructed due to data-date size mismatch");
 }
 
-const std::string TimeSeries::getName() const
+std::string TimeSeries::getName() const
 {
     return m_name;
 }
 
-const std::vector<double> TimeSeries::getValues() const
+std::vector<double> TimeSeries::getValues() const
 {
     return m_data;
 }
 
-const std::vector<boost::gregorian::date> TimeSeries::getDates() const
+std::vector<boost::gregorian::date> TimeSeries::getDates() const
 {
     return m_dates;
 }
@@ -46,7 +47,7 @@ double TimeSeries::getValue(const boost::gregorian::date& date) const
 
 unsigned int TimeSeries::getIndex(const boost::gregorian::date& date) const
 {
-    for (unsigned int i = 0; i < m_dates.size(); ++i)
+    for (unsigned long i = 0; i < m_dates.size(); ++i)
     {
         if (m_dates[i] == date)
             return i;

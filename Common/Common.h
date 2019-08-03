@@ -12,6 +12,7 @@ namespace Common
     class ConfigVariable;
     class ConfigModelSpec;
     class ConfigModelSpecRelative;
+    class ConfigModelSpecRegression;
 
     class TransformationType;
     class FirstDifferenceTransformation;

@@ -15,7 +15,7 @@ class Common::ConfigModelSpec
 {
 public:
     ConfigModelSpec(const Common::ConfigVariable& dependentVariable,
-                    const std::vector<Common::ConfigVariable>& independentVariables);
+                    std::vector<Common::ConfigVariable>  independentVariables);
 
     Common::ConfigVariable getDependentVariable() const;
     std::vector<Common::ConfigVariable> getIndependentVariables() const;
@@ -44,6 +44,23 @@ public:
 private:
     std::unique_ptr<Math::RelativeModel> m_modelPtr;
     const int m_multiplier;
+};
+
+
+class Common::ConfigModelSpecRegression : public Common::ConfigModelSpec
+{
+public:
+    ConfigModelSpecRegression(const Common::ConfigVariable& dependentVariable,
+            const std::vector<Common::ConfigVariable>& independentVariables,
+            const std::string& modelSubType,
+            const boost::gregorian::date& regressionStartDate);
+
+    void calibrate(const Common::DataSet& ds) final;
+    double predict(const Common::DataSet& ds, unsigned int index) const final;
+
+private:
+    //std::unique_ptr<Math::RegressionModel> m_modelPtr;
+    const boost::gregorian::date m_startDate;
 };
 
 #endif //WILDCATSTKCORE_CONFIGMODELSPEC_H

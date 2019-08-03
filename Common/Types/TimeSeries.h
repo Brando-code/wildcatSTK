@@ -15,12 +15,12 @@
 class Common::TimeSeries
 {
 public:
-    TimeSeries(const std::string& variableName, const std::vector<double>& variableData,
+    TimeSeries(std::string  variableName, const std::vector<double>& variableData,
                const std::vector<boost::gregorian::date>& dates);
 
-    const std::string getName() const;
-    const std::vector<double> getValues() const;
-    const std::vector<boost::gregorian::date> getDates() const;
+    std::string getName() const;
+    std::vector<double> getValues() const;
+    std::vector<boost::gregorian::date> getDates() const;
 
     double getValue(unsigned int index) const;
     double getValue(const boost::gregorian::date& date) const;

@@ -5,6 +5,7 @@
 #include "ConfigVariable.h"
 #include "../../Global/Mappings/FactoryMappings.h"
 #include <cmath>
+#include <utility>
 
 using namespace Common;
 
@@ -82,7 +83,7 @@ std::unique_ptr<TransformationType> LevelTransformationFactory::create() const
 
 
 //ConfigVariable class implementation
-ConfigVariable::ConfigVariable(const std::string &rawConfigVariable, const std::string& delimiter) : m_strsplit(), m_delimiter(delimiter)
+ConfigVariable::ConfigVariable(const std::string &rawConfigVariable, std::string  delimiter) : m_strsplit(), m_delimiter(std::move(delimiter))
 {
     m_strsplit.split(rawConfigVariable, m_delimiter);
     m_transformationTypePtr = Global::TransformationTypeCodeFactoryMapping::instance() ->

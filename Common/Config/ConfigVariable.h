@@ -17,7 +17,7 @@ class Common::ConfigVariable
 {
 public:
     explicit ConfigVariable(const std::string& rawConfigVariable);
-    ConfigVariable(const std::string& rawConfigVariable, const std::string& delimiter);
+    ConfigVariable(const std::string& rawConfigVariable, std::string  delimiter);
     ConfigVariable(const ConfigVariable& other);
     //ConfigVariable& operator=(const ConfigVariable& other);
 

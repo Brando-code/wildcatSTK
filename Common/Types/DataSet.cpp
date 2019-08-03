@@ -15,7 +15,7 @@ DataSet::DataSet(const std::vector<TimeSeries> &ts)
     }
 }
 
-const std::unordered_map<std::string, TimeSeries> DataSet::getData() const
+std::unordered_map<std::string, TimeSeries> DataSet::getData() const
 {
     return m_data;
 }

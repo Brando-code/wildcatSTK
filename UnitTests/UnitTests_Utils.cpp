@@ -14,7 +14,6 @@
 
 #include <iostream>
 #include <cmath>
-#include <fstream>
 
 namespace utf = boost::unit_test;
 
@@ -48,4 +47,4 @@ BOOST_AUTO_TEST_SUITE_END()
 
 
 
-#pragma clang diagnostic pop
+//#pragma clang diagnostic pop

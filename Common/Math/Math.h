@@ -14,6 +14,9 @@ namespace Math
     class RelativeGrowthModelFactory;
     class RelativeVolatilityModelFactory;
 
+    class RegressionModel;
+    class RegressionModelOLS;
+
     class MultivariateStat;
     class UnivariateStat;
 }
