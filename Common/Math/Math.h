@@ -9,8 +9,13 @@ namespace Math
 {
     class RelativeModel;
     class RelativeGrowthModel;
+    class RelativeVolatilityModel;
     class RelativeModelFactory;
     class RelativeGrowthModelFactory;
+    class RelativeVolatilityModelFactory;
+
+    class MultivariateStat;
+    class UnivariateStat;
 }
 
 #endif //WILDCATSTKCORE_MATH_H

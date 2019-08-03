@@ -46,7 +46,7 @@ RelativeModelFactoryMapping::RelativeModelFactoryMapping()
 {
     const std::vector<std::string> allowedRelativeSubTypeNames = {"growth", "volatility"};
     m_mapping.emplace(allowedRelativeSubTypeNames[0], new Math::RelativeGrowthModelFactory());
-    //add volatility mapping when available..
+    m_mapping.emplace(allowedRelativeSubTypeNames[1], new Math::RelativeVolatilityModelFactory());
 }
 
 RelativeModelFactoryMapping* RelativeModelFactoryMapping::instance()

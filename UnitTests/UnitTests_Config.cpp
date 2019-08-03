@@ -206,4 +206,4 @@ BOOST_AUTO_TEST_SUITE(ConfigModelSpec)
 
 BOOST_AUTO_TEST_SUITE_END()
 
-#pragma clang diagnostic pop
+//#pragma clang diagnostic pop

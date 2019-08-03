@@ -13,6 +13,8 @@
 
 #include "Common/Utils/IO/JSONParser.h"
 
+#include "Common/Math/Statistics/Stat.h"
+
 #include "Global/Mappings/FactoryMappings.h"
 
 #endif //QUANTLIB_WILDCATSTKCOREINCLUDES_H

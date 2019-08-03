@@ -28,6 +28,14 @@ public:
                    const std::vector<double>& independentVariableValues) const final;
 };
 
+class Math::RelativeVolatilityModel : public Math::RelativeModel
+{
+public:
+    void calibrate(std::vector<double>& coefficients,
+                   const std::vector<double>& dependentVariableValues,
+                   const std::vector<double>& independentVariableValues) const final;
+};
+
 
 class Math::RelativeModelFactory
 {
@@ -38,6 +46,12 @@ public:
 };
 
 class Math::RelativeGrowthModelFactory : public Math::RelativeModelFactory
+{
+public:
+    std::unique_ptr<Math::RelativeModel> create() const final;
+};
+
+class Math::RelativeVolatilityModelFactory : public Math::RelativeModelFactory
 {
 public:
     std::unique_ptr<Math::RelativeModel> create() const final;

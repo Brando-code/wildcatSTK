@@ -2,8 +2,8 @@
 // Created by Alberto Campi on 22/07/2019.
 //
 
-#ifndef QUANTLIB_COMMON_H
-#define QUANTLIB_COMMON_H
+#ifndef WILDCATSTKCORE_COMMON_H
+#define WILDCATSTKCORE_COMMON_H
 
 namespace Common
 {
@@ -35,4 +35,4 @@ namespace Common
     class CSVParserDataSet;
 }
 
-#endif //QUANTLIB_COMMON_H
+#endif //WILDCATSTKCORE_COMMON_H
