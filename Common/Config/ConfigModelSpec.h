@@ -58,9 +58,11 @@ public:
     void calibrate(const Common::DataSet& ds) final;
     double predict(const Common::DataSet& ds, unsigned int index) const final;
 
+    boost::gregorian::date getFirstValidRegressionDate(const Common::DataSet& ds) const;
+
 private:
     //std::unique_ptr<Math::RegressionModel> m_modelPtr;
-    const boost::gregorian::date m_startDate;
+    boost::gregorian::date m_startDate;
 };
 
 #endif //WILDCATSTKCORE_CONFIGMODELSPEC_H

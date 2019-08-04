@@ -14,6 +14,7 @@
 #include "Common/Utils/IO/JSONParser.h"
 
 #include "Common/Math/Statistics/Stat.h"
+#include "Common/Math/Relative/RelativeModel.h"
 
 #include "Global/Mappings/FactoryMappings.h"
 

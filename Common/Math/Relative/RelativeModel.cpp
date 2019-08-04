@@ -8,7 +8,8 @@
 void Math::RelativeGrowthModel::calibrate(std::vector<double>& coefficients, const std::vector<double>& dependentVariableValues,
                                           const std::vector<double>& independentVariableValues) const
 {
-    coefficients[0] = 1.0;
+    coefficients.clear();
+    coefficients.push_back(1.0);
 }
 
 void Math::RelativeVolatilityModel::calibrate(std::vector<double> &coefficients, const std::vector<double> &dependentVariableValues,
@@ -21,7 +22,8 @@ void Math::RelativeVolatilityModel::calibrate(std::vector<double> &coefficients,
     for (const auto& val: independentVariableValues)
         idVar.add(val);
 
-    coefficients[0] = idVar.stdDev() / dVar.stdDev();
+    coefficients.clear();
+    coefficients.push_back(idVar.stdDev() / dVar.stdDev());
 }
 
 std::unique_ptr<Math::RelativeModel> Math::RelativeGrowthModelFactory::create() const

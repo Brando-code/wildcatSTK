@@ -25,7 +25,7 @@ public:
     //RegressionModelOLS(algoritmObject);
     void calibrate(std::vector<double>& coefficients,
                    const std::vector<double>& dependentVariableValues,
-                   const boost::numeric::ublas::matrix<double>& independentVariableValues) const;
+                   const boost::numeric::ublas::matrix<double>& independentVariableValues) const final;
 
 private:
     //pointer to algorithm implementation

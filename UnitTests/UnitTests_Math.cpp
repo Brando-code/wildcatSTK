@@ -76,3 +76,27 @@ BOOST_AUTO_TEST_SUITE(Statistics)
     }
 
 BOOST_AUTO_TEST_SUITE_END()
+
+
+BOOST_AUTO_TEST_SUITE(Relative)
+    BOOST_AUTO_TEST_CASE(RelativeVolatilityModel_happyPath)
+    {
+        const std::vector<double> lhsData = {0.1, 0.15, 0.24, 0.12, 0.08, 0.095, 0.34, 0.29};
+        const std::vector<double> rhsData = {1.4, 1.56, 2, 2.34, 5.6, 3};
+
+        Math::UnivariateStat lhsS, rhsS;
+        for (const auto& it: lhsData)
+            lhsS.add(it);
+
+        for (const auto& it: rhsData)
+            rhsS.add(it);
+
+        const double expectedParameter = rhsS.stdDev() / lhsS.stdDev();
+        std::vector<double> coeffs;
+        Math::RelativeVolatilityModel mdl;
+        mdl.calibrate(coeffs, lhsData, rhsData);
+        BOOST_CHECK_EQUAL(coeffs.size(), 1);
+        BOOST_CHECK_EQUAL(coeffs[0], expectedParameter);
+    }
+
+BOOST_AUTO_TEST_SUITE_END()
