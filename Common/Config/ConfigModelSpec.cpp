@@ -134,5 +134,15 @@ double Common::ConfigModelSpecRegression::predict(const Common::DataSet &ds, uns
     if (m_coeff.empty())
         throw std::out_of_range("E: ConfigModelSpecRegression::predict : projections cannot be generated from un-calibrated models.");
 
-    return 0;
+    const double intercept = m_coeff[0];
+    double dTransformedVariable = 0;
+    for (unsigned int i = 0; i < m_idVariables.size(); ++i)
+    {
+        const Common::TimeSeries ts = ds.getTimeSeries(m_idVariables.at(i).getBasename());
+        dTransformedVariable += m_coeff.at(i + 1) * m_idVariables.at(i).getTransformedValue(ts, index);
+    }
+
+    dTransformedVariable += intercept;
+    const Common::TimeSeries ts = ds.getTimeSeries(m_dVariable.getBasename());
+    return m_dVariable.getLevel(ts, dTransformedVariable, index);
 }
