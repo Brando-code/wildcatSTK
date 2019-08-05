@@ -15,6 +15,7 @@
 
 namespace utf = boost::unit_test;
 
+const std::string inputRelativePath = "../UnitTests/Inputs/";
 
 BOOST_AUTO_TEST_SUITE(ConfigVariable)
     const double tol = 1e-10;
@@ -182,7 +183,8 @@ BOOST_AUTO_TEST_SUITE_END()
 BOOST_AUTO_TEST_SUITE(ConfigModelSpec)
     struct Fixture
     {
-        Fixture() : f_dv("DOW_JONES|R|0"), f_ivs({Common::ConfigVariable("US_GDP|R|0"), Common::ConfigVariable("WTI|R|1")}),
+        Fixture() : f_dv("DOW_JONES|R|0"), f_ivs({Common::ConfigVariable("US_GDP|R|0"),
+                                                  Common::ConfigVariable("WTI|R|1")}),
                     f_m(), f_modelSubType(), f_startDate() {}
 
 
@@ -191,9 +193,10 @@ BOOST_AUTO_TEST_SUITE(ConfigModelSpec)
         int f_m;
         std::string f_modelSubType;
         boost::gregorian::date f_startDate;
+
     };
 
-    BOOST_AUTO_TEST_CASE(ConfigModelSpec_relative_happyPath)
+    BOOST_AUTO_TEST_CASE(ConfigModelSpec_relative_growth_happyPath)
     {
         Fixture fx;
         fx.f_modelSubType = "growth";
@@ -202,6 +205,19 @@ BOOST_AUTO_TEST_SUITE(ConfigModelSpec)
         Common::ConfigModelSpecRelative cms(fx.f_dv, fx.f_ivs, fx.f_modelSubType, fx.f_m);
         BOOST_CHECK(cms.getDependentVariable() == fx.f_dv);
         BOOST_CHECK(cms.getIndependentVariables() == fx.f_ivs);
+
+        Common::JSONParserDecoratorDataSet js;
+        const std::string inputDataSetFileName = "readJSON_data_test.json";
+        js.readJSON(inputRelativePath + inputDataSetFileName);
+        const Common::DataSet ds = js.getDataSet();
+
+        Common::ConfigModelSpecRelative spec(fx.f_dv, fx.f_ivs, fx.f_modelSubType, fx.f_m);
+        const unsigned int index = ds.getTimeSeries(fx.f_ivs.at(0).getBasename()).getValues().size() - 1;
+        const double ivTransformedValue = fx.f_ivs.at(0).getTransformedValue(ds.getTimeSeries(fx.f_ivs.at(0).getBasename()), index);
+        const double dvExpectedValue = ds.getValue(fx.f_dv.getBasename(), index - 1) * (1 + ivTransformedValue);
+
+        spec.calibrate(ds);
+        BOOST_CHECK_EQUAL(spec.predict(ds, ds.getTimeSeries(fx.f_dv.getBasename()).getValues().size() - 1), dvExpectedValue);
     }
 
 BOOST_AUTO_TEST_SUITE_END()
