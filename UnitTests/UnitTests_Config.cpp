@@ -184,7 +184,8 @@ BOOST_AUTO_TEST_SUITE(ConfigModelSpec)
     struct Fixture
     {
         Fixture() : f_dv("DOW_JONES|R|0"), f_ivs({Common::ConfigVariable("US_GDP|R|0"),
-                                                  Common::ConfigVariable("WTI|R|1")}),
+                                                  Common::ConfigVariable("WTI|R|1"),
+                                                  Common::ConfigVariable("UK_CPI|R|2")}),
                     f_m(), f_modelSubType(), f_startDate() {}
 
 
@@ -196,6 +197,15 @@ BOOST_AUTO_TEST_SUITE(ConfigModelSpec)
 
     };
 
+    void loadDataSet(const std::string& fullFileName, Common::DataSet& ds)
+    {
+        Common::JSONParserDecoratorDataSet js;
+        js.readJSON(fullFileName);
+        ds = js.getDataSet();
+    }
+
+    const std::string inputDataSetFileName = "readJSON_data_test.json";
+
     BOOST_AUTO_TEST_CASE(ConfigModelSpec_relative_growth_happyPath)
     {
         Fixture fx;
@@ -206,10 +216,8 @@ BOOST_AUTO_TEST_SUITE(ConfigModelSpec)
         BOOST_CHECK(cms.getDependentVariable() == fx.f_dv);
         BOOST_CHECK(cms.getIndependentVariables() == fx.f_ivs);
 
-        Common::JSONParserDecoratorDataSet js;
-        const std::string inputDataSetFileName = "readJSON_data_test.json";
-        js.readJSON(inputRelativePath + inputDataSetFileName);
-        const Common::DataSet ds = js.getDataSet();
+        Common::DataSet ds;
+        loadDataSet(inputRelativePath + inputDataSetFileName, ds);
 
         Common::ConfigModelSpecRelative spec(fx.f_dv, fx.f_ivs, fx.f_modelSubType, fx.f_m);
         const unsigned int index = ds.getTimeSeries(fx.f_ivs.at(0).getBasename()).getValues().size() - 1;
@@ -218,6 +226,24 @@ BOOST_AUTO_TEST_SUITE(ConfigModelSpec)
 
         spec.calibrate(ds);
         BOOST_CHECK_EQUAL(spec.predict(ds, ds.getTimeSeries(fx.f_dv.getBasename()).getValues().size() - 1), dvExpectedValue);
+    }
+
+    BOOST_AUTO_TEST_CASE(ConfigModelSpec_regression_startDate_happyPath)
+    {
+        Fixture fx;
+        fx.f_startDate = boost::gregorian::date(2007, 03, 31);
+        Common::ConfigModelSpecRegression spec(fx.f_dv, fx.f_ivs, fx.f_modelSubType, fx.f_startDate);
+
+        boost::gregorian::date expectedFirstValidRegressionDate(2007, 9, 30);
+
+        Common::DataSet ds;
+        loadDataSet(inputRelativePath + inputDataSetFileName, ds);
+
+        BOOST_CHECK_EQUAL(spec.getFirstValidRegressionDate(ds), expectedFirstValidRegressionDate);
+
+        fx.f_startDate = boost::gregorian::date(2008, 3, 31);
+        Common::ConfigModelSpecRegression anotherSpec(fx.f_dv, fx.f_ivs, fx.f_modelSubType, fx.f_startDate);
+        BOOST_CHECK_EQUAL(anotherSpec.getFirstValidRegressionDate(ds), fx.f_startDate);
     }
 
 BOOST_AUTO_TEST_SUITE_END()

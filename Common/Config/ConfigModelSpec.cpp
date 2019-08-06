@@ -82,7 +82,7 @@ boost::gregorian::date Common::ConfigModelSpecRegression::getFirstValidRegressio
     for (const auto& it: m_idVariables)
     {
         boost::gregorian::date thisDriverFirstAvailableDate = ds.getTimeSeries(it.getBasename()).getDates().at(0);
-        if (thisDriverFirstAvailableDate < firstValidDate)
+        if (thisDriverFirstAvailableDate > firstValidDate)
             firstValidDate = thisDriverFirstAvailableDate;
     }
 
