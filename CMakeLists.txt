@@ -17,11 +17,12 @@ target_link_libraries(UTests wildcatSTKCore ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY}
 
 add_custom_command(TARGET UTests PRE_BUILD COMMAND lcov --directory . --zerocounters)
 
-add_library(wildcatSTKCore Common/Common.h Common/Config/ConfigVariable.cpp Common/Config/ConfigVariable.h Common/Types/TimeSeries.cpp
+add_library(wildcatSTKCore Common/Config/ConfigVariable.cpp Common/Config/ConfigVariable.h Common/Types/TimeSeries.cpp
         Common/Types/TimeSeries.h Global/Mappings/FactoryMappings.cpp Global/Mappings/FactoryMappings.h Global/Global.h
         Common/Utils/General/Tools.cpp Common/Utils/General/Tools.h Common/Types/DataSet.cpp Common/Types/DataSet.h Common/Config/ConfigModelSpec.cpp
         Common/Config/ConfigModelSpec.h Common/Math/Math.h Common/Math/Relative/RelativeModel.cpp Common/Math/Relative/RelativeModel.h
         Common/Utils/IO/JSONParser.cpp Common/Utils/IO/JSONParser.h Common/Utils/IO/CSVParser.cpp Common/Utils/IO/CSVParser.h
-        Common/Math/Statistics/Stat.cpp Common/Math/Statistics/Stat.h Common/Math/MLRegression/RegressionModel.cpp Common/Math/MLRegression/RegressionModel.h)
+        Common/Math/Statistics/Stat.cpp Common/Math/Statistics/Stat.h Common/Math/MLRegression/RegressionModel.cpp
+        Common/Math/MLRegression/RegressionModel.h Common/Types/ConfigModelSpecTable.cpp Common/Types/ConfigModelSpecTable.h Common/Concepts.h)
 
 target_link_libraries(wildcatSTKCore ${Boost_LIBRARIES})

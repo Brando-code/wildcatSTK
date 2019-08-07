@@ -2,6 +2,7 @@
   <dictionary name="Alberto">
     <words>
       <w>strsplit</w>
+      <w>uncopyable</w>
     </words>
   </dictionary>
 </component>

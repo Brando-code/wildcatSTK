@@ -3,6 +3,7 @@
 //
 
 #include "JSONParser.h"
+#include "../../Types/TimeSeries.h"
 
 void Common::JSONParser::readJSON(const std::string& fileName, boost::property_tree::ptree& tree) const
 {

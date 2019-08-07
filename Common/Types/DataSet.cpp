@@ -3,11 +3,11 @@
 //
 
 #include "DataSet.h"
+#include "TimeSeries.h"
 
-using namespace Common;
 
 //DataSet class implementation
-DataSet::DataSet(const std::vector<TimeSeries> &ts)
+Common::DataSet::DataSet(const std::vector<Common::TimeSeries> &ts)
 {
     for (const auto& el: ts)
     {
@@ -15,12 +15,12 @@ DataSet::DataSet(const std::vector<TimeSeries> &ts)
     }
 }
 
-std::unordered_map<std::string, TimeSeries> DataSet::getData() const
+std::unordered_map<std::string, Common::TimeSeries> Common::DataSet::getData() const
 {
     return m_data;
 }
 
-void DataSet::addData(const TimeSeries &otherTs)
+void Common::DataSet::addData(const Common::TimeSeries &otherTs)
 {
     //[AC] if logic gets used frequently in critical way consider storing mapping at construction stage
     const std::string key = otherTs.getName();
@@ -33,17 +33,17 @@ void DataSet::addData(const TimeSeries &otherTs)
     }
 }
 
-void DataSet::removeData(const std::string &variableName)
+void Common::DataSet::removeData(const std::string &variableName)
 {
     m_data.erase(variableName);
 }
 
-void DataSet::clearAllData()
+void Common::DataSet::clearAllData()
 {
     m_data.clear();
 }
 
-double DataSet::getValue(const std::string &variableName, unsigned int index) const
+double Common::DataSet::getValue(const std::string &variableName, unsigned int index) const
 {
     if (m_data.find(variableName) != m_data.end())
         return m_data.at(variableName).getValue(index);
@@ -51,14 +51,14 @@ double DataSet::getValue(const std::string &variableName, unsigned int index) co
         throw std::runtime_error("E: DataSet::getValue : variable " + variableName + " is not in the data set.");
 }
 
-double DataSet::getValue(const std::string &variableName, const boost::gregorian::date &date) const
+double Common::DataSet::getValue(const std::string &variableName, const boost::gregorian::date &date) const
 {
     if (m_data.find(variableName) != m_data.end())
         return m_data.at(variableName).getValue(date);
     throw std::runtime_error("E: DataSet::getValue : variable " + variableName + " is not in the data set.");
 }
 
-TimeSeries DataSet::getTimeSeries(const std::string &variableName) const
+Common::TimeSeries Common::DataSet::getTimeSeries(const std::string &variableName) const
 {
     if (m_data.find(variableName) != m_data.end())
         return m_data.at(variableName);

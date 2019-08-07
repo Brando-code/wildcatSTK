@@ -7,11 +7,13 @@
 #include <utility>
 #include <boost/numeric/ublas/matrix.hpp>
 #include "../Types/DataSet.h"
+#include "../Types/TimeSeries.h"
 #include "../../Global/Mappings/FactoryMappings.h"
+
 
 //ConfigModelSpec class implementation
 Common::ConfigModelSpec::ConfigModelSpec(const Common::ConfigVariable &dependentVariable,
-                                         std::vector<Common::ConfigVariable> independentVariables) :
+                        std::vector<Common::ConfigVariable> independentVariables) :
         m_dVariable(dependentVariable),
         m_idVariables(std::move(independentVariables)),
         m_coeff()

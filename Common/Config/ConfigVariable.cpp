@@ -4,6 +4,7 @@
 
 #include "ConfigVariable.h"
 #include "../../Global/Mappings/FactoryMappings.h"
+#include "../Types/TimeSeries.h"
 #include <cmath>
 #include <utility>
 
@@ -95,7 +96,7 @@ ConfigVariable::ConfigVariable(const std::string &rawConfigVariable) : ConfigVar
 ConfigVariable::ConfigVariable(const Common::ConfigVariable &other) :
         m_strsplit(other.m_strsplit), m_delimiter(other.m_delimiter),
         m_transformationTypePtr(other.m_transformationTypePtr -> clone()) {}
-/*
+
 ConfigVariable& ConfigVariable::operator=(const Common::ConfigVariable &other)
 {
     if (&other != this)
@@ -106,7 +107,7 @@ ConfigVariable& ConfigVariable::operator=(const Common::ConfigVariable &other)
     }
     return *this;
 }
-*/
+
 std::string ConfigVariable::getBasename() const
 {
     return m_strsplit.getBasename();
