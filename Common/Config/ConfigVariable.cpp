@@ -97,6 +97,10 @@ ConfigVariable::ConfigVariable(const Common::ConfigVariable &other) :
         m_strsplit(other.m_strsplit), m_delimiter(other.m_delimiter),
         m_transformationTypePtr(other.m_transformationTypePtr -> clone()) {}
 
+ConfigVariable::ConfigVariable(Common::ConfigVariable &&other) :
+        m_strsplit(other.m_strsplit), m_delimiter(other.m_delimiter),
+        m_transformationTypePtr(std::move(other.m_transformationTypePtr)) {}
+
 ConfigVariable& ConfigVariable::operator=(const Common::ConfigVariable &other)
 {
     if (&other != this)
@@ -104,6 +108,17 @@ ConfigVariable& ConfigVariable::operator=(const Common::ConfigVariable &other)
         m_strsplit = other.m_strsplit;
         m_delimiter = other.m_delimiter;
         m_transformationTypePtr = other.m_transformationTypePtr -> clone();
+    }
+    return *this;
+}
+
+ConfigVariable& ConfigVariable::operator=(Common::ConfigVariable &&other)
+{
+    if (&other != this)
+    {
+        m_strsplit = other.m_strsplit;
+        m_delimiter = other.m_delimiter;
+        m_transformationTypePtr = std::move(other.m_transformationTypePtr);
     }
     return *this;
 }

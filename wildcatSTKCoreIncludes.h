@@ -15,6 +15,7 @@
 
 #include "Common/Math/Statistics/Stat.h"
 #include "Common/Math/Relative/RelativeModel.h"
+#include "Common/Math/MLRegression/RegressionModel.h"
 
 #include "Global/Mappings/FactoryMappings.h"
 

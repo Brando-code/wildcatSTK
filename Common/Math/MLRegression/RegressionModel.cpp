@@ -9,3 +9,8 @@ void Math::RegressionModelOLS::calibrate(std::vector<double> &coefficients, cons
 {
     //delegate task to algorithm pointer
 }
+
+std::unique_ptr<Math::RegressionModel> Math::RegressionModelOLS::clone() const
+{
+    return std::make_unique<Math::RegressionModelOLS>(*this);
+}

@@ -17,6 +17,7 @@ namespace Math
                                const std::vector<double> &dependentVariableValues,
                                const std::vector<double> &independentVariableValues) const = 0;
 
+        virtual std::unique_ptr<Math::RelativeModel> clone() const = 0;
         virtual ~RelativeModel() = default;
     };
 
@@ -27,6 +28,8 @@ namespace Math
         void calibrate(std::vector<double> &coefficients,
                        const std::vector<double> &dependentVariableValues,
                        const std::vector<double> &independentVariableValues) const final;
+
+        std::unique_ptr<Math::RelativeModel> clone() const final;
     };
 
     class RelativeVolatilityModel : public RelativeModel
@@ -35,6 +38,8 @@ namespace Math
         void calibrate(std::vector<double> &coefficients,
                        const std::vector<double> &dependentVariableValues,
                        const std::vector<double> &independentVariableValues) const final;
+
+        std::unique_ptr<Math::RelativeModel> clone() const final;
     };
 
 

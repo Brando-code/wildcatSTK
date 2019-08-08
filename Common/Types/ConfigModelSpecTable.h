@@ -16,13 +16,17 @@ namespace Common
     public:
         ConfigModelSpecTable() = default;
         explicit ConfigModelSpecTable(const std::vector<std::unique_ptr<Common::ConfigModelSpec>> &modelSpecs);
+        ConfigModelSpecTable(const ConfigModelSpecTable& other);
+        ConfigModelSpecTable& operator=(const ConfigModelSpecTable& other);
+        ConfigModelSpecTable(ConfigModelSpecTable&& other);
+        ConfigModelSpecTable& operator=(ConfigModelSpecTable&& other);
 
         void addModelSpec(const Common::ConfigModelSpec &modelSpec);
         void removeData(const std::string &variableName);
         void clearAllData();
 
         std::unordered_map<std::string, std::unique_ptr<Common::ConfigModelSpec>> getConfigModelSpecTable() const;
-        const std::unique_ptr<Common::ConfigModelSpec> &getConfigModelSpec(const std::string &variableName) const;
+        std::unique_ptr<Common::ConfigModelSpec> getConfigModelSpec(const std::string &variableName) const;
 
     private:
         std::unordered_map<std::string, std::unique_ptr<Common::ConfigModelSpec>> m_configModelTable;

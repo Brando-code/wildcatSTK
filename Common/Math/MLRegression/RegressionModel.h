@@ -17,7 +17,9 @@ namespace Math
         virtual void calibrate(std::vector<double> &coefficients,
                                const std::vector<double> &dependentVariableValues,
                                const boost::numeric::ublas::matrix<double> &independentVariableValues) const = 0;
-
+        
+        virtual std::unique_ptr<Math::RegressionModel> clone() const = 0;
+        
         virtual ~RegressionModel() = default;
     };
 
@@ -29,6 +31,8 @@ namespace Math
                        const std::vector<double> &dependentVariableValues,
                        const boost::numeric::ublas::matrix<double> &independentVariableValues) const final;
 
+        std::unique_ptr<Math::RegressionModel> clone() const final;
+        
     private:
         //pointer to algorithm implementation
     };

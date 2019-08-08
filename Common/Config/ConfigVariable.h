@@ -7,7 +7,6 @@
 
 #include <string>
 #include <memory>
-//#include "../Common.h"
 #include "../Concepts.h"
 #include "../Utils/General/Tools.h"
 
@@ -24,6 +23,8 @@ namespace Common
         ConfigVariable(const std::string &rawConfigVariable, std::string delimiter);
         ConfigVariable(const ConfigVariable &other);
         ConfigVariable& operator=(const ConfigVariable& other);
+        ConfigVariable(ConfigVariable &&other);
+        ConfigVariable& operator=(ConfigVariable&& other);
 
         std::string getBasename() const;
         std::string getTransformationTypeCode() const;

@@ -9,6 +9,7 @@
 #include "../Types/DataSet.h"
 #include "../Types/TimeSeries.h"
 #include "../../Global/Mappings/FactoryMappings.h"
+#include "../Math/MLRegression/RegressionModel.h"
 
 
 //ConfigModelSpec class implementation
@@ -22,6 +23,16 @@ Common::ConfigModelSpec::ConfigModelSpec(const Common::ConfigVariable &dependent
         throw std::runtime_error("E: ConfigModelSpec::ConfigModelSpec : no drivers specified for dependent variable " +
         m_dVariable.getBasename());
 }
+
+Common::ConfigModelSpec::ConfigModelSpec(const Common::ConfigModelSpec &other) :
+        m_dVariable(other.m_dVariable),
+        m_idVariables(other.m_idVariables),
+        m_coeff(other.m_coeff) {}
+
+Common::ConfigModelSpec::ConfigModelSpec(Common::ConfigModelSpec &&other) :
+        m_dVariable(other.m_dVariable),
+        m_idVariables(other.m_idVariables),
+        m_coeff(other.m_coeff) {}
 
 Common::ConfigVariable Common::ConfigModelSpec::getDependentVariable() const
 {
@@ -42,6 +53,42 @@ Common::ConfigModelSpecRelative::ConfigModelSpecRelative(const Common::ConfigVar
 {
     //initialize m_modelPtr via factory
     m_modelPtr = Global::RelativeModelFactoryMapping::instance() -> getFactory(modelSubType) -> create();
+}
+
+Common::ConfigModelSpecRelative::ConfigModelSpecRelative(const Common::ConfigModelSpecRelative &other) :
+        ConfigModelSpec(other.m_dVariable, other.m_idVariables),
+        m_multiplier(other.m_multiplier),
+        m_modelPtr(other.m_modelPtr -> clone()) {}
+
+Common::ConfigModelSpecRelative::ConfigModelSpecRelative(Common::ConfigModelSpecRelative &&other) :
+        ConfigModelSpec(other.m_dVariable, other.m_idVariables),
+        m_multiplier(other.m_multiplier),
+        m_modelPtr(std::move(other.m_modelPtr)) {}
+
+Common::ConfigModelSpecRelative& Common::ConfigModelSpecRelative::operator=(const Common::ConfigModelSpecRelative &other)
+{
+    if (&other != this)
+    {
+        m_dVariable = other.m_dVariable;
+        m_idVariables = other.m_idVariables;
+        m_coeff = other.m_coeff;
+        m_multiplier = other.m_multiplier;
+        m_modelPtr = other.m_modelPtr -> clone();
+    }
+    return *this;
+}
+
+Common::ConfigModelSpecRelative& Common::ConfigModelSpecRelative::operator=(Common::ConfigModelSpecRelative &&other)
+{
+    if (&other != this)
+    {
+        m_dVariable = other.m_dVariable;
+        m_idVariables = other.m_idVariables;
+        m_coeff = other.m_coeff;
+        m_multiplier = other.m_multiplier;
+        m_modelPtr = std::move(other.m_modelPtr);
+    }
+    return *this;
 }
 
 void Common::ConfigModelSpecRelative::calibrate(const Common::DataSet &ds)
@@ -68,14 +115,57 @@ double Common::ConfigModelSpecRelative::predict(const Common::DataSet &ds, unsig
     return m_dVariable.getLevel(ds.getTimeSeries(m_dVariable.getBasename()), transformedProjection, index);
 }
 
+std::unique_ptr<Common::ConfigModelSpec> Common::ConfigModelSpecRelative::clone() const
+{
+    return std::make_unique<Common::ConfigModelSpecRelative>(*this);
+}
+
 
 //ConfigModelSpecRegression class implementation
 Common::ConfigModelSpecRegression::ConfigModelSpecRegression(const Common::ConfigVariable &dependentVariable,
                                                              const std::vector<Common::ConfigVariable> &independentVariables,
                                                              const std::string &modelSubType,
                                                              const boost::gregorian::date &regressionStartDate) :
-        ConfigModelSpec(dependentVariable, independentVariables), m_startDate(regressionStartDate) //initialize pointer too
-{}
+        ConfigModelSpec(dependentVariable, independentVariables),
+        m_startDate(regressionStartDate),
+        //Should be replace by factory when more regression models are available
+        m_modelPtr(std::make_unique<Math::RegressionModelOLS>(Math::RegressionModelOLS())) {}
+
+Common::ConfigModelSpecRegression::ConfigModelSpecRegression(const Common::ConfigModelSpecRegression &other) :
+        ConfigModelSpec(other.m_dVariable, other.m_idVariables),
+        m_startDate(other.m_startDate),
+        m_modelPtr(other.m_modelPtr -> clone()) {}
+
+Common::ConfigModelSpecRegression::ConfigModelSpecRegression(Common::ConfigModelSpecRegression &&other) :
+        ConfigModelSpec(other.m_dVariable, other.m_idVariables),
+        m_startDate(other.m_startDate),
+        m_modelPtr(std::move(other.m_modelPtr)) {}
+
+Common::ConfigModelSpecRegression& Common::ConfigModelSpecRegression::operator=(const Common::ConfigModelSpecRegression &other)
+{
+    if (&other != this)
+    {
+        m_dVariable = other.m_dVariable;
+        m_idVariables = other.m_idVariables;
+        m_coeff = other.m_coeff;
+        m_startDate = other.m_startDate;
+        m_modelPtr = other.m_modelPtr -> clone();
+    }
+    return *this;
+}
+
+Common::ConfigModelSpecRegression& Common::ConfigModelSpecRegression::operator=(Common::ConfigModelSpecRegression &&other)
+{
+    if (&other != this)
+    {
+        m_dVariable = other.m_dVariable;
+        m_idVariables = other.m_idVariables;
+        m_coeff = other.m_coeff;
+        m_startDate = other.m_startDate;
+        m_modelPtr = std::move(other.m_modelPtr);
+    }
+    return *this;
+}
 
 boost::gregorian::date Common::ConfigModelSpecRegression::getFirstValidRegressionDate(const Common::DataSet &ds) const
 {
@@ -148,3 +238,9 @@ double Common::ConfigModelSpecRegression::predict(const Common::DataSet &ds, uns
     const Common::TimeSeries ts = ds.getTimeSeries(m_dVariable.getBasename());
     return m_dVariable.getLevel(ts, dTransformedVariable, index);
 }
+
+std::unique_ptr<Common::ConfigModelSpec> Common::ConfigModelSpecRegression::clone() const
+{
+    return std::make_unique<Common::ConfigModelSpecRegression>(*this);
+}
+
