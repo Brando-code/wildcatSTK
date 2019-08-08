@@ -42,6 +42,17 @@ BOOST_AUTO_TEST_SUITE(ConfigVariable)
 
         const Common::ConfigVariable cv = Common::ConfigVariable(rawConfigVariable);
 
+        //Test copy ctor
+        Common::ConfigVariable ccv = cv;
+        BOOST_CHECK(cv == ccv);
+
+        //Test move semantics
+        Common::ConfigVariable mcv(std::move(ccv)) ;
+        BOOST_CHECK(cv == mcv);
+        mcv = std::move(ccv);
+        BOOST_CHECK(cv == mcv);
+
+        //Test other methods
         BOOST_CHECK_EQUAL(cv.getBasename(), fx.getTimeSeries().getName());
         BOOST_CHECK_EQUAL(cv.getTransformationTypeCode(), "D");
         BOOST_CHECK_EQUAL(cv.getLagDependency(), 1);

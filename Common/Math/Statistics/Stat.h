@@ -33,7 +33,7 @@ namespace Math
         std::vector<double> m_sumOfRVs;
         boost::numeric::ublas::matrix<double> m_sumOfCrossProdRVs;
 
-        void _checkCounter() const;
+        //void _checkCounter() const;
     };
 
 
@@ -54,8 +54,9 @@ namespace Math
         double m_sumOfRV;
         double m_sumOfSquaredRV;
 
-        void _checkCounter() const;
+        //void _checkCounter() const;
     };
 
+    void checkDivisionByZero(double denominator);
 }
 #endif //WILDCATSTKCORE_STAT_H
