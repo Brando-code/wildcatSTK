@@ -73,3 +73,30 @@ std::unique_ptr<Common::ConfigModelSpec> Common::ConfigModelSpecTable::getConfig
 {
     return m_configModelTable.at(variableName) -> clone();
 }
+
+bool Common::ConfigModelSpecTable::operator==(const Common::ConfigModelSpecTable &other) const
+{
+    bool rv = true;
+    if (other.m_configModelTable.size() == m_configModelTable.size())
+    {
+        for (const auto &it: other.m_configModelTable)
+        {
+            if (m_configModelTable.find(it.first) != m_configModelTable.end() and *m_configModelTable.at(it.first) == *other.m_configModelTable.at(it.first))
+                continue;
+            else
+            {
+                rv = false;
+                break;
+            }
+        }
+    } 
+    else
+        rv = false;
+    
+    return rv;
+}
+
+bool Common::ConfigModelSpecTable::operator!=(const Common::ConfigModelSpecTable &other) const
+{
+    return !(*this == other);
+}

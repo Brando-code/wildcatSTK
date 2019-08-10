@@ -24,16 +24,6 @@ Common::ConfigModelSpec::ConfigModelSpec(const Common::ConfigVariable &dependent
         m_dVariable.getBasename());
 }
 
-Common::ConfigModelSpec::ConfigModelSpec(const Common::ConfigModelSpec &other) :
-        m_dVariable(other.m_dVariable),
-        m_idVariables(other.m_idVariables),
-        m_coeff(other.m_coeff) {}
-
-Common::ConfigModelSpec::ConfigModelSpec(Common::ConfigModelSpec &&other) :
-        m_dVariable(other.m_dVariable),
-        m_idVariables(other.m_idVariables),
-        m_coeff(other.m_coeff) {}
-
 Common::ConfigVariable Common::ConfigModelSpec::getDependentVariable() const
 {
     return m_dVariable;
@@ -44,12 +34,18 @@ std::vector<Common::ConfigVariable> Common::ConfigModelSpec::getIndependentVaria
     return m_idVariables;
 }
 
+bool Common::ConfigModelSpec::_equal(const Common::ConfigModelSpec &other) const
+{
+    return (m_dVariable == other.m_dVariable and m_idVariables == other.m_idVariables);
+}
+
+
 
 //ConfigModelSpecRelative class implementation
 Common::ConfigModelSpecRelative::ConfigModelSpecRelative(const Common::ConfigVariable &dependentVariable,
                                                          const std::vector<Common::ConfigVariable> &independentVariables,
-                                                         const std::string &modelSubType, int multiplier) :
-        ConfigModelSpec(dependentVariable, independentVariables), m_multiplier(multiplier)
+                                                         const std::string &modelSubType, double multiplier) :
+        ConfigModelSpec(dependentVariable, independentVariables), m_multiplier(multiplier), m_modelSubType(modelSubType)
 {
     //initialize m_modelPtr via factory
     m_modelPtr = Global::RelativeModelFactoryMapping::instance() -> getFactory(modelSubType) -> create();
@@ -58,11 +54,13 @@ Common::ConfigModelSpecRelative::ConfigModelSpecRelative(const Common::ConfigVar
 Common::ConfigModelSpecRelative::ConfigModelSpecRelative(const Common::ConfigModelSpecRelative &other) :
         ConfigModelSpec(other.m_dVariable, other.m_idVariables),
         m_multiplier(other.m_multiplier),
+        m_modelSubType(other.m_modelSubType),
         m_modelPtr(other.m_modelPtr -> clone()) {}
 
 Common::ConfigModelSpecRelative::ConfigModelSpecRelative(Common::ConfigModelSpecRelative &&other) :
         ConfigModelSpec(other.m_dVariable, other.m_idVariables),
         m_multiplier(other.m_multiplier),
+        m_modelSubType(other.m_modelSubType),
         m_modelPtr(std::move(other.m_modelPtr)) {}
 
 Common::ConfigModelSpecRelative& Common::ConfigModelSpecRelative::operator=(const Common::ConfigModelSpecRelative &other)
@@ -73,6 +71,7 @@ Common::ConfigModelSpecRelative& Common::ConfigModelSpecRelative::operator=(cons
         m_idVariables = other.m_idVariables;
         m_coeff = other.m_coeff;
         m_multiplier = other.m_multiplier;
+        m_modelSubType = other.m_modelSubType;
         m_modelPtr = other.m_modelPtr -> clone();
     }
     return *this;
@@ -86,9 +85,20 @@ Common::ConfigModelSpecRelative& Common::ConfigModelSpecRelative::operator=(Comm
         m_idVariables = other.m_idVariables;
         m_coeff = other.m_coeff;
         m_multiplier = other.m_multiplier;
+        m_modelSubType = other.m_modelSubType;
         m_modelPtr = std::move(other.m_modelPtr);
     }
     return *this;
+}
+
+double Common::ConfigModelSpecRelative::getMultiplier() const
+{
+    return m_multiplier;
+}
+
+std::string Common::ConfigModelSpecRelative::getModelSubType() const
+{
+    return m_modelSubType;
 }
 
 void Common::ConfigModelSpecRelative::calibrate(const Common::DataSet &ds)
@@ -120,6 +130,17 @@ std::unique_ptr<Common::ConfigModelSpec> Common::ConfigModelSpecRelative::clone(
     return std::make_unique<Common::ConfigModelSpecRelative>(*this);
 }
 
+bool Common::ConfigModelSpecRelative::operator==(const Common::ConfigModelSpec &other) const
+{
+    return _equal(other) and
+            m_multiplier == dynamic_cast<const Common::ConfigModelSpecRelative&>(other).m_multiplier and
+            m_modelSubType == dynamic_cast<const Common::ConfigModelSpecRelative&>(other).m_modelSubType;
+}
+
+bool Common::ConfigModelSpecRelative::operator!=(const Common::ConfigModelSpec &other) const
+{
+    return !(*this == other);
+}
 
 //ConfigModelSpecRegression class implementation
 Common::ConfigModelSpecRegression::ConfigModelSpecRegression(const Common::ConfigVariable &dependentVariable,
@@ -128,17 +149,20 @@ Common::ConfigModelSpecRegression::ConfigModelSpecRegression(const Common::Confi
                                                              const boost::gregorian::date &regressionStartDate) :
         ConfigModelSpec(dependentVariable, independentVariables),
         m_startDate(regressionStartDate),
+        m_modelSubType(modelSubType),
         //Should be replace by factory when more regression models are available
         m_modelPtr(std::make_unique<Math::RegressionModelOLS>(Math::RegressionModelOLS())) {}
 
 Common::ConfigModelSpecRegression::ConfigModelSpecRegression(const Common::ConfigModelSpecRegression &other) :
         ConfigModelSpec(other.m_dVariable, other.m_idVariables),
         m_startDate(other.m_startDate),
+        m_modelSubType(other.m_modelSubType),
         m_modelPtr(other.m_modelPtr -> clone()) {}
 
 Common::ConfigModelSpecRegression::ConfigModelSpecRegression(Common::ConfigModelSpecRegression &&other) :
         ConfigModelSpec(other.m_dVariable, other.m_idVariables),
         m_startDate(other.m_startDate),
+        m_modelSubType(other.m_modelSubType),
         m_modelPtr(std::move(other.m_modelPtr)) {}
 
 Common::ConfigModelSpecRegression& Common::ConfigModelSpecRegression::operator=(const Common::ConfigModelSpecRegression &other)
@@ -149,6 +173,7 @@ Common::ConfigModelSpecRegression& Common::ConfigModelSpecRegression::operator=(
         m_idVariables = other.m_idVariables;
         m_coeff = other.m_coeff;
         m_startDate = other.m_startDate;
+        m_modelSubType = other.m_modelSubType;
         m_modelPtr = other.m_modelPtr -> clone();
     }
     return *this;
@@ -162,9 +187,15 @@ Common::ConfigModelSpecRegression& Common::ConfigModelSpecRegression::operator=(
         m_idVariables = other.m_idVariables;
         m_coeff = other.m_coeff;
         m_startDate = other.m_startDate;
+        m_modelSubType = other.m_modelSubType;
         m_modelPtr = std::move(other.m_modelPtr);
     }
     return *this;
+}
+
+std::string Common::ConfigModelSpecRegression::getModelSubType() const
+{
+    return m_modelSubType;
 }
 
 boost::gregorian::date Common::ConfigModelSpecRegression::getFirstValidRegressionDate(const Common::DataSet &ds) const
@@ -244,3 +275,14 @@ std::unique_ptr<Common::ConfigModelSpec> Common::ConfigModelSpecRegression::clon
     return std::make_unique<Common::ConfigModelSpecRegression>(*this);
 }
 
+bool Common::ConfigModelSpecRegression::operator==(const Common::ConfigModelSpec &other) const
+{
+    return _equal(other) and
+            dynamic_cast<const Common::ConfigModelSpecRegression&>(other).m_startDate == m_startDate and
+            dynamic_cast<const Common::ConfigModelSpecRegression&>(other).m_modelSubType == m_modelSubType;
+}
+
+bool Common::ConfigModelSpecRegression::operator!=(const Common::ConfigModelSpec &other) const
+{
+    return !(*this == other);
+}

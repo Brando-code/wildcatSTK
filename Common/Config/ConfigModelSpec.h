@@ -26,8 +26,6 @@ namespace Common
     public:
         ConfigModelSpec(const Common::ConfigVariable &dependentVariable,
                         std::vector<Common::ConfigVariable> independentVariables);
-        ConfigModelSpec(const ConfigModelSpec& other);
-        ConfigModelSpec(ConfigModelSpec&& other);
 
         Common::ConfigVariable getDependentVariable() const;
 
@@ -38,10 +36,16 @@ namespace Common
 
         virtual std::unique_ptr<Common::ConfigModelSpec> clone() const = 0;
 
+        virtual bool operator==(const Common::ConfigModelSpec& other) const = 0;
+        virtual bool operator!=(const Common::ConfigModelSpec& other) const = 0;
+
     protected:
         Common::ConfigVariable m_dVariable;
         std::vector<Common::ConfigVariable> m_idVariables;
         std::vector<double> m_coeff;
+
+        bool _equal(const Common::ConfigModelSpec& other) const;
+        //bool _notEqual(const Common::ConfigModelSpec& other) const;
     };
 
 
@@ -51,21 +55,27 @@ namespace Common
         ConfigModelSpecRelative(const Common::ConfigVariable &dependentVariable,
                                 const std::vector<Common::ConfigVariable> &independentVariables,
                                 const std::string &modelSubType,
-                                int multiplier);
+                                double multiplier);
         ConfigModelSpecRelative(const Common::ConfigModelSpecRelative& other);
         ConfigModelSpecRelative& operator=(const Common::ConfigModelSpecRelative& other);
         ConfigModelSpecRelative(Common::ConfigModelSpecRelative&& other);
         ConfigModelSpecRelative& operator=(Common::ConfigModelSpecRelative&& other);
+
+        double getMultiplier() const;
+        std::string getModelSubType() const;
 
         void calibrate(const Common::DataSet &ds) final;
         double predict(const Common::DataSet &ds, unsigned int index) const final;
 
         std::unique_ptr<Common::ConfigModelSpec> clone() const final;
 
+        bool operator==(const Common::ConfigModelSpec& other) const final;
+        bool operator!=(const Common::ConfigModelSpec& other) const final;
+
     private:
         std::unique_ptr<Math::RelativeModel> m_modelPtr;
-        int m_multiplier;
-
+        double m_multiplier;
+        std::string m_modelSubType;
     };
 
 
@@ -81,6 +91,8 @@ namespace Common
         ConfigModelSpecRegression(Common::ConfigModelSpecRegression&& other);
         ConfigModelSpecRegression& operator=(Common::ConfigModelSpecRegression&& other);
 
+        std::string getModelSubType() const;
+
         void calibrate(const Common::DataSet &ds) final;
         double predict(const Common::DataSet &ds, unsigned int index) const final;
 
@@ -88,9 +100,13 @@ namespace Common
 
         std::unique_ptr<Common::ConfigModelSpec> clone() const final;
 
+        bool operator==(const Common::ConfigModelSpec& other) const final;
+        bool operator!=(const Common::ConfigModelSpec& other) const final;
+
     private:
         std::unique_ptr<Math::RegressionModel> m_modelPtr;
         boost::gregorian::date m_startDate;
+        std::string m_modelSubType;
     };
 
 }

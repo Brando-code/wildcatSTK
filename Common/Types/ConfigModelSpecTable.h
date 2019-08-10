@@ -27,6 +27,9 @@ namespace Common
 
         std::unordered_map<std::string, std::unique_ptr<Common::ConfigModelSpec>> getConfigModelSpecTable() const;
         std::unique_ptr<Common::ConfigModelSpec> getConfigModelSpec(const std::string &variableName) const;
+        
+        bool operator==(const Common::ConfigModelSpecTable& other) const;
+        bool operator!=(const Common::ConfigModelSpecTable& other) const;
 
     private:
         std::unordered_map<std::string, std::unique_ptr<Common::ConfigModelSpec>> m_configModelTable;

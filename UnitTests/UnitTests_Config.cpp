@@ -53,7 +53,7 @@ BOOST_AUTO_TEST_SUITE(ConfigVariable)
         //Test move semantics
         Common::ConfigVariable mcv(std::move(ccv)) ;
         BOOST_CHECK(cv == mcv);
-        mcv = std::move(ccv);
+        mcv = Common::ConfigVariable(cv);
         BOOST_CHECK(cv == mcv);
 
         //Test other methods
@@ -71,7 +71,6 @@ BOOST_AUTO_TEST_SUITE(ConfigVariable)
         BOOST_TEST(cv.getTransformedTimeSeriesValues(fx.getTimeSeries()) == expectedTransformedValues);
 
     }
-
 
     BOOST_AUTO_TEST_CASE(ConfigVariable_simpleReturns_happyPath, *utf::tolerance(tol))
     {
@@ -227,6 +226,16 @@ BOOST_AUTO_TEST_SUITE(ConfigModelSpec)
 
     const std::string inputDataSetFileName = "readJSON_data_test.json";
 
+    BOOST_AUTO_TEST_CASE(ConfigModelSpec_badIdVariables)
+    {
+        Fixture fx;
+        fx.f_modelSubType = "growth";
+        fx.f_m = 1;
+
+        BOOST_CHECK_THROW(Common::ConfigModelSpecRelative cms(fx.f_dv, std::vector<Common::ConfigVariable>(), fx.f_modelSubType, fx.f_m),
+                std::runtime_error);
+    }
+
     BOOST_AUTO_TEST_CASE(ConfigModelSpec_relative_growth_happyPath)
     {
         Fixture fx;
@@ -236,6 +245,18 @@ BOOST_AUTO_TEST_SUITE(ConfigModelSpec)
         Common::ConfigModelSpecRelative cms(fx.f_dv, fx.f_ivs, fx.f_modelSubType, fx.f_m);
         BOOST_CHECK(cms.getDependentVariable() == fx.f_dv);
         BOOST_CHECK(cms.getIndependentVariables() == fx.f_ivs);
+
+        //Testing copy semantics
+        Common::ConfigModelSpecRelative ccms(cms);
+        BOOST_CHECK(cms == ccms);
+        ccms = cms;
+        BOOST_CHECK(cms == ccms);
+
+        //Testing move semantics
+        Common::ConfigModelSpecRelative mcms(std::move(ccms));
+        BOOST_CHECK(cms == mcms);
+        mcms = Common::ConfigModelSpecRelative(cms);
+        BOOST_CHECK(cms == mcms);
 
         Common::DataSet ds;
         loadDataSet(inputRelativePath + inputDataSetFileName, ds);
@@ -247,6 +268,8 @@ BOOST_AUTO_TEST_SUITE(ConfigModelSpec)
 
         spec.calibrate(ds);
         BOOST_CHECK_EQUAL(spec.predict(ds, ds.getTimeSeries(fx.f_dv.getBasename()).getValues().size() - 1), dvExpectedValue);
+        BOOST_CHECK_EQUAL(spec.getModelSubType(), fx.f_modelSubType);
+        BOOST_CHECK_EQUAL(spec.getMultiplier(), fx.f_m);
     }
 
     BOOST_AUTO_TEST_CASE(ConfigModelSpec_regression_startDate_happyPath)
@@ -261,6 +284,7 @@ BOOST_AUTO_TEST_SUITE(ConfigModelSpec)
         loadDataSet(inputRelativePath + inputDataSetFileName, ds);
 
         BOOST_CHECK_EQUAL(spec.getFirstValidRegressionDate(ds), expectedFirstValidRegressionDate);
+        BOOST_CHECK_EQUAL(spec.getModelSubType(), fx.f_modelSubType);
 
         fx.f_startDate = boost::gregorian::date(2008, 3, 31);
         Common::ConfigModelSpecRegression anotherSpec(fx.f_dv, fx.f_ivs, fx.f_modelSubType, fx.f_startDate);
@@ -305,11 +329,38 @@ BOOST_AUTO_TEST_SUITE(ConfigModelSpecTable)
         Common::ConfigModelSpecRegression spec(defFx.f_dv, defFx.f_ivs, defFx.f_modelSubType, defFx.f_startDate);
         Common::ConfigModelSpecRegression otherSpec(otherFx.f_dv, otherFx.f_ivs, otherFx.f_modelSubType, otherFx.f_startDate);
 
+        //Test constructors
         Common::ConfigModelSpecTable table;
         table.addModelSpec(spec), table.addModelSpec(otherSpec);
 
+        //[AC] Note that a simple initialization list wouldn't work here as move construction is not currently supported
+        //std::unique_ptr is not copyable but only movable
+        std::vector<std::unique_ptr<Common::ConfigModelSpec>> v;
+        v.push_back(std::make_unique<Common::ConfigModelSpecRegression>(spec)), v.push_back(std::make_unique<Common::ConfigModelSpecRegression>(otherSpec));
+        Common::ConfigModelSpecTable otherTable(v);
+        BOOST_CHECK(table == otherTable);
+
+        //Test copy semantics
+        Common::ConfigModelSpecTable cTable(table);
+        BOOST_CHECK(table == cTable);
+        cTable = otherTable;
+        BOOST_CHECK(cTable == table);
+
+        //Test move semantics
+        Common::ConfigModelSpecTable mvTable(std::move(cTable));
+        BOOST_CHECK(table == mvTable);
+        mvTable = Common::ConfigModelSpecTable(table);
+        BOOST_CHECK(table == mvTable);
+
         BOOST_CHECK_EQUAL(table.getConfigModelSpecTable().size(), 2);
-        //BOOST_CHECK_EQUAL(*table.getConfigModelSpec(otherFx.f_dv.getBasename()), otherSpec);
+        BOOST_CHECK(*table.getConfigModelSpec(otherFx.f_dv.getBasename()) == otherSpec);
+
+        table.removeData(otherFx.f_dv.getBasename());
+        BOOST_CHECK_THROW(*table.getConfigModelSpec(otherFx.f_dv.getBasename()), std::out_of_range);
+
+        table.clearAllData();
+        BOOST_CHECK_EQUAL(table.getConfigModelSpecTable().size(), 0);
+        BOOST_CHECK(table != otherTable);
     }
 
 BOOST_AUTO_TEST_SUITE_END()
