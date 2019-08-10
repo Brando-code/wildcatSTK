@@ -95,7 +95,7 @@ ConfigVariable::ConfigVariable(const std::string &rawConfigVariable) : ConfigVar
 
 ConfigVariable::ConfigVariable(const Common::ConfigVariable &other) :
         m_strsplit(other.m_strsplit), m_delimiter(other.m_delimiter),
-        m_transformationTypePtr(other.m_transformationTypePtr -> clone()) {}
+        m_transformationTypePtr(other.m_transformationTypePtr == nullptr ? nullptr : other.m_transformationTypePtr -> clone()) {}
 
 ConfigVariable::ConfigVariable(Common::ConfigVariable &&other) :
         m_strsplit(other.m_strsplit), m_delimiter(other.m_delimiter),

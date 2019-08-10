@@ -42,9 +42,13 @@ BOOST_AUTO_TEST_SUITE(ConfigVariable)
 
         const Common::ConfigVariable cv = Common::ConfigVariable(rawConfigVariable);
 
-        //Test copy ctor
+        //Test copy semantics
         Common::ConfigVariable ccv = cv;
         BOOST_CHECK(cv == ccv);
+        Common::ConfigVariable cccv("UK_HPI|LR|0");
+        BOOST_CHECK(cccv != cv);
+        cccv = cv;
+        BOOST_CHECK(cccv == cv);
 
         //Test move semantics
         Common::ConfigVariable mcv(std::move(ccv)) ;
@@ -177,16 +181,22 @@ BOOST_AUTO_TEST_SUITE(DataSet)
         Common::DataSet ds;
         ds.addData(ts), ds.addData(otherTs);
 
+        Common::DataSet otherDs(std::vector<Common::TimeSeries>{ts, otherTs});
+        BOOST_CHECK(ds == otherDs);
+
         const boost::gregorian::date inRangeDate = boost::gregorian::date(2017, 12, 31);
         const boost::gregorian::date otherInRangeDate = boost::gregorian::date(2018, 03, 31);
 
         BOOST_CHECK_EQUAL(ds.getValue(variableName, inRangeDate), values[3]);
         BOOST_CHECK_EQUAL(ds.getValue(otherVariableName, otherInRangeDate), otherValues[4]);
+        BOOST_CHECK_THROW(ds.getValue("US_CPI", otherInRangeDate), std::runtime_error);
 
         ds.removeData(otherVariableName);
         BOOST_CHECK_EQUAL(ds.getData().size(), 1);
+        BOOST_CHECK(ds != otherDs);
         BOOST_CHECK(ds.getData().at(variableName) == ts);
         BOOST_CHECK(ds.getTimeSeries(variableName) == ts);
+        BOOST_CHECK_THROW(ds.getTimeSeries("US_CPI"), std::runtime_error);
     }
 BOOST_AUTO_TEST_SUITE_END()
 
@@ -255,6 +265,51 @@ BOOST_AUTO_TEST_SUITE(ConfigModelSpec)
         fx.f_startDate = boost::gregorian::date(2008, 3, 31);
         Common::ConfigModelSpecRegression anotherSpec(fx.f_dv, fx.f_ivs, fx.f_modelSubType, fx.f_startDate);
         BOOST_CHECK_EQUAL(anotherSpec.getFirstValidRegressionDate(ds), fx.f_startDate);
+    }
+
+BOOST_AUTO_TEST_SUITE_END()
+
+
+BOOST_AUTO_TEST_SUITE(ConfigModelSpecTable)
+    struct Fixture
+    {
+        //Default fixture
+        Fixture() : f_dv("DOW_JONES|R|0"), f_ivs({Common::ConfigVariable("US_GDP|R|0"),
+                                                  Common::ConfigVariable("WTI|R|1"),
+                                                  Common::ConfigVariable("UK_CPI|R|2")}),
+                    f_m(), f_modelSubType(), f_startDate() {}
+
+        //Fixture with parameters
+        Fixture(const std::string rawDepVarName, std::initializer_list<Common::ConfigVariable> rawIDepVariables) :
+                f_dv(rawDepVarName), f_ivs({rawIDepVariables}), f_m(), f_modelSubType(), f_startDate() {}
+
+
+        const Common::ConfigVariable f_dv;
+        const std::vector<Common::ConfigVariable> f_ivs;
+        int f_m;
+        std::string f_modelSubType;
+        boost::gregorian::date f_startDate;
+
+    };
+
+    BOOST_AUTO_TEST_CASE(ConfigModelSpecTable_all)
+    {
+        Fixture defFx;
+        defFx.f_modelSubType = "ols_lm";
+        defFx.f_startDate = boost::gregorian::from_string("2005/09/10");
+
+        Fixture otherFx("UK_HPI|L|0", {Common::ConfigVariable("UK_UNEMP|D|1"), Common::ConfigVariable("UK_CPI|R|0")});
+        otherFx.f_modelSubType = "garch";
+        otherFx.f_startDate = boost::gregorian::from_string("1987/12/31");
+
+        Common::ConfigModelSpecRegression spec(defFx.f_dv, defFx.f_ivs, defFx.f_modelSubType, defFx.f_startDate);
+        Common::ConfigModelSpecRegression otherSpec(otherFx.f_dv, otherFx.f_ivs, otherFx.f_modelSubType, otherFx.f_startDate);
+
+        Common::ConfigModelSpecTable table;
+        table.addModelSpec(spec), table.addModelSpec(otherSpec);
+
+        BOOST_CHECK_EQUAL(table.getConfigModelSpecTable().size(), 2);
+        //BOOST_CHECK_EQUAL(*table.getConfigModelSpec(otherFx.f_dv.getBasename()), otherSpec);
     }
 
 BOOST_AUTO_TEST_SUITE_END()

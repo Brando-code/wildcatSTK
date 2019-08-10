@@ -43,7 +43,7 @@ Common::ConfigModelSpecTable& Common::ConfigModelSpecTable::operator=(Common::Co
 void Common::ConfigModelSpecTable::addModelSpec(const Common::ConfigModelSpec &modelSpec)
 {
     const std::string key = modelSpec.getDependentVariable().getBasename();
-    if (m_configModelTable.find(key) != m_configModelTable.end())
+    if (m_configModelTable.find(key) == m_configModelTable.end())
         m_configModelTable.emplace(modelSpec.getDependentVariable().getBasename(), modelSpec.clone());
     else
     {

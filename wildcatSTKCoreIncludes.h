@@ -10,6 +10,7 @@
 
 #include "Common/Types/TimeSeries.h"
 #include "Common/Types/DataSet.h"
+#include "Common/Types/ConfigModelSpecTable.h"
 
 #include "Common/Utils/IO/JSONParser.h"
 
