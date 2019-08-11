@@ -10,10 +10,12 @@
 
 #include <boost/test/unit_test.hpp>
 #include <boost/test/unit_test_suite.hpp>
-#include "../wildcatSTKCoreIncludes.h"
-
 #include <iostream>
 #include <cmath>
+#include "../Common/Utils/IO/JSONParser.h"
+#include "../Common/Utils/General/Tools.h"
+#include "../Common/Types/TimeSeries.h"
+
 
 namespace utf = boost::unit_test;
 

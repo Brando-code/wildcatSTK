@@ -69,7 +69,7 @@ void Math::NaturalCubicSplineInterpolator::fitSpline(const std::map<double, doub
     }
 }
 
-Math::CSpline Math::NaturalCubicSplineInterpolator::getCoeffs() const
+Math::CSpline Math::NaturalCubicSplineInterpolator::getCoefficients() const
 {
     return m_splineFunction;
 }

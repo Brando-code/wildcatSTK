@@ -8,10 +8,17 @@
 
 #include <boost/test/unit_test.hpp>
 #include <boost/test/unit_test_suite.hpp>
-#include "../wildcatSTKCoreIncludes.h"
-
 #include <iostream>
 #include <cmath>
+#include "../Common/Config/ConfigVariable.h"
+#include "../Common/Config/ConfigModelSpec.h"
+#include "../Common/Types/TimeSeries.h"
+#include "../Common/Types/DataSet.h"
+#include "../Common/Types/ConfigModelSpecTable.h"
+#include "../Common/Utils/IO/JSONParser.h"
+#include "../Common/Math/Relative/RelativeModel.h"
+#include "../Common/Math/MLRegression/RegressionModel.h"
+
 
 namespace utf = boost::unit_test;
 

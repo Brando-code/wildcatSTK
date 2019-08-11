@@ -8,13 +8,20 @@
 
 #include <boost/test/unit_test.hpp>
 #include <boost/test/unit_test_suite.hpp>
-#include "../wildcatSTKCoreIncludes.h"
-
+#include "Utils.h"
 #include <cmath>
 #include <random>
+#include "../Common/Math/Statistics/Stat.h"
+#include "../Common/Math/Relative/RelativeModel.h"
+#include "../Common/Math/MLRegression/RegressionModel.h"
+#include "../Common/Math/Interpolation/Interpolator.h"
+#include "../Common/Math/Interpolation/LinearInterpolator.h"
+#include "../Common/Math/Interpolation/NaturalCubicSplineInterpolator.h"
 
 namespace utf = boost::unit_test;
 namespace tt = boost::test_tools;
+
+const std::string expectedOutputRelativePath = "../UnitTests/Outputs/Expected/";
 
 BOOST_AUTO_TEST_SUITE(Statistics)
     const double tol = 0.1;
@@ -104,6 +111,7 @@ BOOST_AUTO_TEST_SUITE_END()
 
 BOOST_AUTO_TEST_SUITE(Interpolation)
     using namespace Math;
+
     BOOST_AUTO_TEST_CASE(Natural_cubic_spline_fit)
     {
         std::map<double, double> f = {{0, exp(0)}, {1, exp(1)}, {2, exp(2)}, {3, exp(3)}};
@@ -117,12 +125,10 @@ BOOST_AUTO_TEST_SUITE(Interpolation)
                                                 {20.085536923187668, 0, 0, 0}};
 
         for (unsigned int i = 0; i < 4; ++i)
-        {
-            BOOST_TEST(ncsi.getCoeffs().at(i).operator==(expectedCoeffs.at(i)));
-        }
+            BOOST_TEST(ncsi.getCoefficients().at(i).operator==(expectedCoeffs.at(i)));
     }
-/*
-    BOOST_AUTO_TEST_CASE(Natural_cubic_spline_interpolation)
+
+    BOOST_AUTO_TEST_CASE(Natural_cubic_spline_interpolation, *utf::tolerance(1e-4))
     {
         std::map<double, double> f = {{0, exp(0)}, {1, exp(1)}, {2, exp(2)}, {3, exp(3)}};
 
@@ -137,20 +143,23 @@ BOOST_AUTO_TEST_SUITE(Interpolation)
             sum += dx;
         }
 
-        const std::map<double, double> act = ncsi.interpolatePoints(f, queryPoints);
+        std::map<double, double> act = ncsi.interpolatePoints(f, queryPoints);
 
-        const std::string actual = actualPath + "Natural_cubic_spline_interpolation.txt";
-        const std::string expected = expectedPath + "Natural_cubic_spline_interpolation_expected.txt";
-        std::ofstream actualOut(actual);
-        common::writeMap(act, actualOut, 5, false);
-
+        const std::string expected = expectedOutputRelativePath + "Natural_cubic_spline_interpolation_expected.txt";
         std::ifstream expectedIn(expected);
-        std::ifstream actualIn(actual);
-        std::istream_iterator<char> expectedBeginIt(expectedIn), expectedEndIt;
-        std::istream_iterator<char> actualBeginIt(actualIn), actualEndIt;
-        BOOST_CHECK_EQUAL_COLLECTIONS(actualBeginIt, actualEndIt, expectedBeginIt, expectedEndIt);
+        std::map<double, double> exp;
+        readMap(exp, expectedIn, false);
+
+        //Extract values from map to perform element-wise comparison with tolerance decorator
+        //IMPORTANT: tolerance would be ignored by BOOST_TEST as maps do not have overloads for order relationship operators
+        std::vector<double> actVals, expVals;
+        std::map<double, double>::iterator it = act.begin(), itt = exp.begin();
+        for (; it != act.end() and itt != exp.end(); ++it, ++itt)
+            actVals.push_back(it -> second), expVals.push_back(itt -> second);
+
+        BOOST_TEST(actVals == expVals, tt::per_element());
     }
-*/
+
     BOOST_AUTO_TEST_CASE(Linear_interpolation)
     {
         const std::pair<double, double> a = std::make_pair(-1, -1); //y = x^3

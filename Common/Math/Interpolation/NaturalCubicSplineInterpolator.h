@@ -21,7 +21,7 @@ namespace Math
         std::unique_ptr<Math::Interpolator> clone() const final;
 
         void fitSpline(const std::map<double, double>& dataSet);
-        CSpline getCoeffs() const;
+        CSpline getCoefficients() const;
 
 
     private:
@@ -30,7 +30,6 @@ namespace Math
 
     };
 }
-
 
 
 #endif //QUANTLIB_NATURALCUBICSPLINEINTERPOLATOR_H
