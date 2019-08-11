@@ -42,9 +42,31 @@ BOOST_AUTO_TEST_SUITE(JSONParser)
         BOOST_CHECK(fromInputJSONds == fromOutputJSONds);
     }
 
-
 BOOST_AUTO_TEST_SUITE_END()
 
+BOOST_AUTO_TEST_SUITE(Tools)
+    BOOST_AUTO_TEST_CASE(getTenorInYearsFromVariableName_all)
+    {
+        std::string rateVariableName = "US_GOV_PAR_RATE_10Y";
+        double expectedTenor = 10.0;
+        BOOST_CHECK_EQUAL(Common::getTenorInYearsFromVariableName(rateVariableName), expectedTenor);
 
+        rateVariableName = "US_SWAP_6M";
+        expectedTenor = 0.5;
+        BOOST_CHECK_EQUAL(Common::getTenorInYearsFromVariableName(rateVariableName), expectedTenor);
+
+        rateVariableName = "SONIA_ON";
+        expectedTenor = 1./365.;
+        BOOST_CHECK_EQUAL(Common::getTenorInYearsFromVariableName(rateVariableName), expectedTenor);
+
+        rateVariableName = "SONIA_7D";
+        expectedTenor = 7./365.;
+        BOOST_CHECK_EQUAL(Common::getTenorInYearsFromVariableName(rateVariableName), expectedTenor);
+
+        rateVariableName = "SONIA_46U";
+        BOOST_CHECK_THROW(Common::getTenorInYearsFromVariableName(rateVariableName), std::runtime_error);
+    }
+
+BOOST_AUTO_TEST_SUITE_END()
 
 //#pragma clang diagnostic pop

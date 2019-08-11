@@ -6,6 +6,7 @@
 
 using namespace Common;
 
+
 //StringSplit class implementation
 std::vector<std::string> StringSplit::split(const std::string &string, const std::string &pattern) const
 {
@@ -57,4 +58,31 @@ unsigned int StringSplitConfigVariableDecorator::getLagDependency() const
         throw std::runtime_error("E: StringSplitConfigVariableDecorator::getLagDependency: lag dependency must be a non-negative integer.");
     else
         return static_cast<unsigned int>(lagDependency);
+}
+
+
+//Global function tools definitions
+double Common::getTenorInYearsFromVariableName(const std::string& variableName)
+{
+    Common::StringSplit spl;
+    std::string tenor = spl.split(variableName, "_").back();
+
+    if (tenor == "ON")  //[AC] overnight rates
+        return 1./365;
+
+    const char unit = tenor.back();
+    tenor.pop_back();
+    const double value = std::stod(tenor);
+
+    switch (unit)
+    {
+        case 'Y':
+            return value;
+        case 'M':
+            return value/12.;
+        case 'D':
+            return value/365.;
+        default:
+            throw std::runtime_error("CurveModelDef::_getTenorInYearsFromVariableName : unknown unit code " + std::string(1, unit));
+    }
 }

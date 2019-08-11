@@ -33,6 +33,7 @@ namespace Common
 
         virtual void calibrate(const Common::DataSet &ds) = 0;
         virtual double predict(const Common::DataSet &ds, unsigned int index) const = 0;
+        //virtual double predict(const Common::DataSet &ds, const boost::gregorian::date& date) const = 0;
 
         virtual std::unique_ptr<Common::ConfigModelSpec> clone() const = 0;
 
@@ -45,7 +46,6 @@ namespace Common
         std::vector<double> m_coeff;
 
         bool _equal(const Common::ConfigModelSpec& other) const;
-        //bool _notEqual(const Common::ConfigModelSpec& other) const;
     };
 
 

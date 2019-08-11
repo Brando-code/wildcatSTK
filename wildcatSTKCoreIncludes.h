@@ -17,6 +17,9 @@
 #include "Common/Math/Statistics/Stat.h"
 #include "Common/Math/Relative/RelativeModel.h"
 #include "Common/Math/MLRegression/RegressionModel.h"
+#include "Common/Math/Interpolation/Interpolator.h"
+#include "Common/Math/Interpolation/LinearInterpolator.h"
+#include "Common/Math/Interpolation/NaturalCubicSplineInterpolator.h"
 
 #include "Global/Mappings/FactoryMappings.h"
 

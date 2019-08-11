@@ -45,6 +45,9 @@ namespace Common
         std::string getTransformationTypeCode() const;
         unsigned int getLagDependency() const;
     };
+
+    //Tool global functions : may be re-organized into separate header or class at a later stage
+    double getTenorInYearsFromVariableName(const std::string& variableName);
 }
 
 #endif //WILDCATSTKCORE_TOOLS_H
