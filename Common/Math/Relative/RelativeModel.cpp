@@ -5,6 +5,8 @@
 #include "RelativeModel.h"
 #include "../Statistics/Stat.h"
 
+
+//RelativeGrowthModel class implementation
 void Math::RelativeGrowthModel::calibrate(std::vector<double>& coefficients, const std::vector<double>& dependentVariableValues,
                                           const std::vector<double>& independentVariableValues) const
 {
@@ -12,6 +14,13 @@ void Math::RelativeGrowthModel::calibrate(std::vector<double>& coefficients, con
     coefficients.push_back(1.0);
 }
 
+std::unique_ptr<Math::RelativeModel> Math::RelativeGrowthModel::clone() const
+{
+    return std::make_unique<Math::RelativeGrowthModel>(*this);
+}
+
+
+//RelativeVolatilityModel class implementation
 void Math::RelativeVolatilityModel::calibrate(std::vector<double> &coefficients, const std::vector<double> &dependentVariableValues,
                                               const std::vector<double> &independentVariableValues) const
 {
@@ -26,6 +35,12 @@ void Math::RelativeVolatilityModel::calibrate(std::vector<double> &coefficients,
     coefficients.push_back(idVar.stdDev() / dVar.stdDev());
 }
 
+std::unique_ptr<Math::RelativeModel> Math::RelativeVolatilityModel::clone() const
+{
+    return std::make_unique<Math::RelativeVolatilityModel>(*this);
+}
+
+//Abstract factory classes implementation
 std::unique_ptr<Math::RelativeModel> Math::RelativeGrowthModelFactory::create() const
 {
     return std::make_unique<Math::RelativeGrowthModel>(RelativeGrowthModel());

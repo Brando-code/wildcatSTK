@@ -7,114 +7,119 @@
 
 #include <string>
 #include <memory>
-#include "../Common.h"
+#include "../Concepts.h"
 #include "../Utils/General/Tools.h"
-#include "../Types/TimeSeries.h"
 
-
-//ConfigVariable class declaration
-class Common::ConfigVariable
+namespace Common
 {
-public:
-    explicit ConfigVariable(const std::string& rawConfigVariable);
-    ConfigVariable(const std::string& rawConfigVariable, std::string  delimiter);
-    ConfigVariable(const ConfigVariable& other);
-    //ConfigVariable& operator=(const ConfigVariable& other);
+    class TimeSeries;
+    class TransformationType;
 
-    std::string getBasename() const;
-    std::string getTransformationTypeCode() const;
-    unsigned int getLagDependency() const;
+    //ConfigVariable class declaration
+    class ConfigVariable //: private Uncopyable
+    {
+    public:
+        explicit ConfigVariable(const std::string &rawConfigVariable);
+        ConfigVariable(const std::string &rawConfigVariable, std::string delimiter);
+        ConfigVariable(const ConfigVariable &other);
+        ConfigVariable& operator=(const ConfigVariable& other);
+        ConfigVariable(ConfigVariable &&other);
+        ConfigVariable& operator=(ConfigVariable&& other);
 
-    double getTransformedValue(const TimeSeries& ts, unsigned int index) const;
-    double getLevel(const TimeSeries& ts, double transformedValue, unsigned int index) const;
-    std::vector<double> getTransformedTimeSeriesValues(const TimeSeries& ts) const;
+        std::string getBasename() const;
+        std::string getTransformationTypeCode() const;
+        unsigned int getLagDependency() const;
+        double getTransformedValue(const TimeSeries &ts, unsigned int index) const;
+        double getLevel(const TimeSeries &ts, double transformedValue, unsigned int index) const;
+        std::vector<double> getTransformedTimeSeriesValues(const TimeSeries &ts) const;
 
-    bool operator==(const Common::ConfigVariable& other) const;
-    bool operator!=(const Common::ConfigVariable& other) const;
+        bool operator==(const Common::ConfigVariable &other) const;
+        bool operator!=(const Common::ConfigVariable &other) const;
 
-private:
-    Common::StringSplitConfigVariableDecorator m_strsplit;
-    std::string m_delimiter;
-    std::unique_ptr<Common::TransformationType> m_transformationTypePtr;
-
-};
-
-
-//TransformationType class hierarchy declaration
-class Common::TransformationType
-{
-public:
-    virtual double getTransformedValue(const TimeSeries& ts, unsigned int index) const = 0;
-    virtual double getLevel(const TimeSeries& ts, double transformedValue, unsigned int index) const = 0;
-
-    virtual std::unique_ptr<Common::TransformationType> clone() const = 0;
-
-    virtual ~TransformationType() = default;
-};
+    private:
+        Common::StringSplitConfigVariableDecorator m_strsplit;
+        std::string m_delimiter;
+        std::unique_ptr<Common::TransformationType> m_transformationTypePtr;
+    };
 
 
-class Common::FirstDifferenceTransformation : public Common::TransformationType
-{
-    double getTransformedValue(const TimeSeries& ts, unsigned int index) const final;
-    double getLevel(const TimeSeries& ts, double transformedValue, unsigned int index) const final;
+    //TransformationType class hierarchy declaration
+    class TransformationType
+    {
+    public:
+        virtual double getTransformedValue(const TimeSeries &ts, unsigned int index) const = 0;
+        virtual double getLevel(const TimeSeries &ts, double transformedValue, unsigned int index) const = 0;
 
-    std::unique_ptr<Common::TransformationType> clone() const final;
-};
+        virtual std::unique_ptr<Common::TransformationType> clone() const = 0;
 
-
-class Common::SimpleReturnTransformation : public Common::TransformationType
-{
-    double getTransformedValue(const TimeSeries& ts, unsigned int index) const final;
-    double getLevel(const TimeSeries& ts, double transformedValue, unsigned int index) const final;
-
-    std::unique_ptr<Common::TransformationType> clone() const final;
-};
+        virtual ~TransformationType() = default;
+    };
 
 
-class Common::LogReturnTransformation : public Common::TransformationType
-{
-    double getTransformedValue(const TimeSeries& ts, unsigned int index) const final;
-    double getLevel(const TimeSeries& ts, double transformedValue, unsigned int index) const final;
+    class FirstDifferenceTransformation : public TransformationType
+    {
+        double getTransformedValue(const TimeSeries &ts, unsigned int index) const final;
+        double getLevel(const TimeSeries &ts, double transformedValue, unsigned int index) const final;
 
-    std::unique_ptr<Common::TransformationType> clone() const final;
-};
-
-
-//Abstract factory class hierarchy declaration
-class Common::TransformationTypeFactory
-{
-public:
-    virtual std::unique_ptr<Common::TransformationType> create() const = 0;
-    virtual ~TransformationTypeFactory() = default;
-};
+        std::unique_ptr<Common::TransformationType> clone() const final;
+    };
 
 
-class Common::FirstDifferenceTransformationFactory : public TransformationTypeFactory
-{
-public:
-    std::unique_ptr<Common::TransformationType> create() const final;
-};
+    class SimpleReturnTransformation : public TransformationType
+    {
+        double getTransformedValue(const TimeSeries &ts, unsigned int index) const final;
+        double getLevel(const TimeSeries &ts, double transformedValue, unsigned int index) const final;
+
+        std::unique_ptr<Common::TransformationType> clone() const final;
+    };
 
 
-class Common::SimpleReturnTransformationFactory : public TransformationTypeFactory
-{
-public:
-    std::unique_ptr<Common::TransformationType> create() const final;
-};
+    class LogReturnTransformation : public TransformationType
+    {
+        double getTransformedValue(const TimeSeries &ts, unsigned int index) const final;
+        double getLevel(const TimeSeries &ts, double transformedValue, unsigned int index) const final;
+
+        std::unique_ptr<Common::TransformationType> clone() const final;
+    };
 
 
-class Common::LogReturnTransformationFactory : public TransformationTypeFactory
-{
-public:
-    std::unique_ptr<Common::TransformationType> create() const final;
-};
+    //Abstract factory class hierarchy declaration
+    class TransformationTypeFactory
+    {
+    public:
+        virtual std::unique_ptr<Common::TransformationType> create() const = 0;
+
+        virtual ~TransformationTypeFactory() = default;
+    };
 
 
-class Common::LevelTransformationFactory : public TransformationTypeFactory
-{
-public:
-    std::unique_ptr<Common::TransformationType> create() const final;
-};
+    class FirstDifferenceTransformationFactory : public TransformationTypeFactory
+    {
+    public:
+        std::unique_ptr<Common::TransformationType> create() const final;
+    };
 
+
+    class SimpleReturnTransformationFactory : public TransformationTypeFactory
+    {
+    public:
+        std::unique_ptr<Common::TransformationType> create() const final;
+    };
+
+
+    class LogReturnTransformationFactory : public TransformationTypeFactory
+    {
+    public:
+        std::unique_ptr<Common::TransformationType> create() const final;
+    };
+
+
+    class LevelTransformationFactory : public TransformationTypeFactory
+    {
+    public:
+        std::unique_ptr<Common::TransformationType> create() const final;
+    };
+
+}
 
 #endif //WILDCATSTKCORE_CONFIGVARIABLE_H

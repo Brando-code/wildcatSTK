@@ -5,11 +5,10 @@
 #include "Stat.h"
 #include <cmath>
 
-
-void Math::MultivariateStat::_checkCounter() const
+void Math::checkDivisionByZero(double denominator)
 {
-    if (m_counter == 0)
-        throw std::overflow_error("Stat::checkCounter : Divide by zero exception");
+    if (denominator == 0)
+        throw std::overflow_error("Math::checkDivisionByZero : Divide by zero exception");
 }
 
 Math::MultivariateStat::MultivariateStat(unsigned int dimension) : m_dim(dimension), m_counter(0), m_sumOfRVs(dimension),
@@ -31,7 +30,7 @@ void Math::MultivariateStat::add(const std::vector<double>& randomVariables)
 
 std::vector<double> Math::MultivariateStat::mean() const
 {
-    _checkCounter();
+    Math::checkDivisionByZero(m_counter);
     std::vector<double> meanValues;
     for (const auto &values : m_sumOfRVs)
         meanValues.push_back(values / static_cast<double>(m_counter));
@@ -41,7 +40,7 @@ std::vector<double> Math::MultivariateStat::mean() const
 
 std::vector<double> Math::MultivariateStat::variance() const
 {
-    _checkCounter();
+    Math::checkDivisionByZero(m_counter);
     std::vector<double> varianceValues;
     for (unsigned int i = 0; i < m_dim; ++i)
     {
@@ -55,7 +54,7 @@ std::vector<double> Math::MultivariateStat::variance() const
 
 std::vector<double> Math::MultivariateStat::stdDev() const
 {
-    _checkCounter();
+    Math::checkDivisionByZero(m_counter);
     std::vector<double> stdDevValues;
     for (unsigned int i = 0; i < m_dim; ++i)
     {
@@ -69,7 +68,7 @@ std::vector<double> Math::MultivariateStat::stdDev() const
 
 std::vector<double> Math::MultivariateStat::stdError() const
 {
-    _checkCounter();
+    Math::checkDivisionByZero(m_counter);
     std::vector<double> stdError;
     for (unsigned int i = 0; i < m_dim; ++i)
     {
@@ -84,7 +83,7 @@ std::vector<double> Math::MultivariateStat::stdError() const
 
 boost::numeric::ublas::matrix<double> Math::MultivariateStat::covariance() const
 {
-    _checkCounter();
+    Math::checkDivisionByZero(m_counter);
     boost::numeric::ublas::matrix<double> covarianceValues(m_dim, m_dim);
     for (unsigned int row = 0; row < m_dim; ++row)
         for (unsigned int column = 0; column <= row; ++column) {
@@ -99,7 +98,7 @@ boost::numeric::ublas::matrix<double> Math::MultivariateStat::covariance() const
 
 boost::numeric::ublas::matrix<double> Math::MultivariateStat::correlation() const
 {
-    _checkCounter();
+    Math::checkDivisionByZero(m_counter);
     boost::numeric::ublas::matrix<double> correlationValues(m_dim, m_dim);
     for (unsigned int row = 0; row < m_dim; ++row)
         for (unsigned int column = 0; column <= row; ++column)
@@ -120,12 +119,6 @@ boost::numeric::ublas::matrix<double> Math::MultivariateStat::correlation() cons
 }
 
 
-void Math::UnivariateStat::_checkCounter() const
-{
-    if (m_counter == 0)
-        throw std::overflow_error("Stat::checkCounter : Divide by zero exception");
-}
-
 Math::UnivariateStat::UnivariateStat() : m_counter(0), m_sumOfRV(0), m_sumOfSquaredRV(0) {}
 
 void Math::UnivariateStat::add(double x)
@@ -137,13 +130,13 @@ void Math::UnivariateStat::add(double x)
 
 double Math::UnivariateStat::mean() const
 {
-    _checkCounter();
+    Math::checkDivisionByZero(m_counter);
     return m_sumOfRV/static_cast<double>(m_counter);
 }
 
 double Math::UnivariateStat::variance() const
 {
-    _checkCounter();
+    Math::checkDivisionByZero(m_counter);
     return (m_sumOfSquaredRV - m_sumOfRV*m_sumOfRV/ static_cast<double>(m_counter))/ static_cast<double>(m_counter);
 }
 

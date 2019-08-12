@@ -3,6 +3,7 @@
 //
 
 #include "FactoryMappings.h"
+#include "../../Common/Config/ConfigVariable.h"
 
 using namespace Global;
 

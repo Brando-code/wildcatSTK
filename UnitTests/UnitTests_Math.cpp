@@ -8,14 +8,20 @@
 
 #include <boost/test/unit_test.hpp>
 #include <boost/test/unit_test_suite.hpp>
-#include "../wildcatSTKCoreIncludes.h"
-#include "../Common/Math/MLRegression/RegressionModel.h"
-
+#include "Utils.h"
 #include <cmath>
 #include <random>
+#include "../Common/Math/Statistics/Stat.h"
+#include "../Common/Math/Relative/RelativeModel.h"
+#include "../Common/Math/MLRegression/RegressionModel.h"
+#include "../Common/Math/Interpolation/Interpolator.h"
+#include "../Common/Math/Interpolation/LinearInterpolator.h"
+#include "../Common/Math/Interpolation/NaturalCubicSplineInterpolator.h"
 
 namespace utf = boost::unit_test;
 namespace tt = boost::test_tools;
+
+const std::string expectedOutputRelativePath = "../UnitTests/Outputs/Expected/";
 
 BOOST_AUTO_TEST_SUITE(Statistics)
     const double tol = 0.1;
@@ -98,6 +104,77 @@ BOOST_AUTO_TEST_SUITE(Relative)
         mdl.calibrate(coeffs, lhsData, rhsData);
         BOOST_CHECK_EQUAL(coeffs.size(), 1);
         BOOST_CHECK_EQUAL(coeffs[0], expectedParameter);
+    }
+
+BOOST_AUTO_TEST_SUITE_END()
+
+
+BOOST_AUTO_TEST_SUITE(Interpolation)
+    using namespace Math;
+
+    BOOST_AUTO_TEST_CASE(Natural_cubic_spline_fit)
+    {
+        std::map<double, double> f = {{0, exp(0)}, {1, exp(1)}, {2, exp(2)}, {3, exp(3)}};
+
+        NaturalCubicSplineInterpolator ncsi;
+        ncsi.fitSpline(f);
+
+        std::vector<CSCoeffs> expectedCoeffs = {{1, 1.4659976141747231, 0 , 0.25228421428432202},
+                                                {2.7182818284590451, 2.2228502570276891, 0.75685264285296605, 1.6910713705909506},
+                                                {7.3890560989306504, 8.8097696545064732, 5.8300667546258174, -1.9433555848752724},
+                                                {20.085536923187668, 0, 0, 0}};
+
+        for (unsigned int i = 0; i < 4; ++i)
+            BOOST_TEST(ncsi.getCoefficients().at(i).operator==(expectedCoeffs.at(i)));
+    }
+
+    BOOST_AUTO_TEST_CASE(Natural_cubic_spline_interpolation, *utf::tolerance(1e-4))
+    {
+        std::map<double, double> f = {{0, exp(0)}, {1, exp(1)}, {2, exp(2)}, {3, exp(3)}};
+
+        NaturalCubicSplineInterpolator ncsi;
+        std::set<double> queryPoints;
+
+        double sum = -1, rightEndPoint = 4;
+        const double dx = 0.2;
+        while (sum < rightEndPoint + dx)
+        {
+            queryPoints.insert(sum);
+            sum += dx;
+        }
+
+        std::map<double, double> act = ncsi.interpolatePoints(f, queryPoints);
+
+        const std::string expected = expectedOutputRelativePath + "Natural_cubic_spline_interpolation_expected.txt";
+        std::ifstream expectedIn(expected);
+        std::map<double, double> exp;
+        readMap(exp, expectedIn, false);
+
+        //Extract values from map to perform element-wise comparison with tolerance decorator
+        //IMPORTANT: tolerance would be ignored by BOOST_TEST as maps do not have overloads for order relationship operators
+        std::vector<double> actVals, expVals;
+        std::map<double, double>::iterator it = act.begin(), itt = exp.begin();
+        for (; it != act.end() and itt != exp.end(); ++it, ++itt)
+            actVals.push_back(it -> second), expVals.push_back(itt -> second);
+
+        BOOST_TEST(actVals == expVals, tt::per_element());
+    }
+
+    BOOST_AUTO_TEST_CASE(Linear_interpolation)
+    {
+        const std::pair<double, double> a = std::make_pair(-1, -1); //y = x^3
+        const std::pair<double, double> b = std::make_pair(-2, -8);
+        const std::pair<double, double> c = std::make_pair(0, 0);
+        const std::pair<double, double> d = std::make_pair(1, 1);
+        const std::pair<double, double> e = std::make_pair(2, 8);
+        const std::map<double, double > f = {a, b, c, d, e}; //fill in map with some function
+
+        LinearInterpolator lin;
+        const std::map<double, double> expected = {{-1.5, -9./2.}, {0., 0.}, {-3., -15.}, {3., 15.}};
+        const std::set<double> x = {-1.5, 0, -3, 3};
+        //const double expectedInterpolate = -9./2.;
+
+        BOOST_CHECK(lin.interpolatePoints(f, x) == expected);
     }
 
 BOOST_AUTO_TEST_SUITE_END()

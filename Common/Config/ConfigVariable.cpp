@@ -4,6 +4,7 @@
 
 #include "ConfigVariable.h"
 #include "../../Global/Mappings/FactoryMappings.h"
+#include "../Types/TimeSeries.h"
 #include <cmath>
 #include <utility>
 
@@ -94,8 +95,12 @@ ConfigVariable::ConfigVariable(const std::string &rawConfigVariable) : ConfigVar
 
 ConfigVariable::ConfigVariable(const Common::ConfigVariable &other) :
         m_strsplit(other.m_strsplit), m_delimiter(other.m_delimiter),
-        m_transformationTypePtr(other.m_transformationTypePtr -> clone()) {}
-/*
+        m_transformationTypePtr(other.m_transformationTypePtr == nullptr ? nullptr : other.m_transformationTypePtr -> clone()) {}
+
+ConfigVariable::ConfigVariable(Common::ConfigVariable &&other) :
+        m_strsplit(other.m_strsplit), m_delimiter(other.m_delimiter),
+        m_transformationTypePtr(std::move(other.m_transformationTypePtr)) {}
+
 ConfigVariable& ConfigVariable::operator=(const Common::ConfigVariable &other)
 {
     if (&other != this)
@@ -106,7 +111,18 @@ ConfigVariable& ConfigVariable::operator=(const Common::ConfigVariable &other)
     }
     return *this;
 }
-*/
+
+ConfigVariable& ConfigVariable::operator=(Common::ConfigVariable &&other)
+{
+    if (&other != this)
+    {
+        m_strsplit = other.m_strsplit;
+        m_delimiter = other.m_delimiter;
+        m_transformationTypePtr = std::move(other.m_transformationTypePtr);
+    }
+    return *this;
+}
+
 std::string ConfigVariable::getBasename() const
 {
     return m_strsplit.getBasename();

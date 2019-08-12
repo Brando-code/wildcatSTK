@@ -8,10 +8,17 @@
 
 #include <boost/test/unit_test.hpp>
 #include <boost/test/unit_test_suite.hpp>
-#include "../wildcatSTKCoreIncludes.h"
-
 #include <iostream>
 #include <cmath>
+#include "../Common/Config/ConfigVariable.h"
+#include "../Common/Config/ConfigModelSpec.h"
+#include "../Common/Types/TimeSeries.h"
+#include "../Common/Types/DataSet.h"
+#include "../Common/Types/ConfigModelSpecTable.h"
+#include "../Common/Utils/IO/JSONParser.h"
+#include "../Common/Math/Relative/RelativeModel.h"
+#include "../Common/Math/MLRegression/RegressionModel.h"
+
 
 namespace utf = boost::unit_test;
 
@@ -42,6 +49,21 @@ BOOST_AUTO_TEST_SUITE(ConfigVariable)
 
         const Common::ConfigVariable cv = Common::ConfigVariable(rawConfigVariable);
 
+        //Test copy semantics
+        Common::ConfigVariable ccv = cv;
+        BOOST_CHECK(cv == ccv);
+        Common::ConfigVariable cccv("UK_HPI|LR|0");
+        BOOST_CHECK(cccv != cv);
+        cccv = cv;
+        BOOST_CHECK(cccv == cv);
+
+        //Test move semantics
+        Common::ConfigVariable mcv(std::move(ccv)) ;
+        BOOST_CHECK(cv == mcv);
+        mcv = Common::ConfigVariable(cv);
+        BOOST_CHECK(cv == mcv);
+
+        //Test other methods
         BOOST_CHECK_EQUAL(cv.getBasename(), fx.getTimeSeries().getName());
         BOOST_CHECK_EQUAL(cv.getTransformationTypeCode(), "D");
         BOOST_CHECK_EQUAL(cv.getLagDependency(), 1);
@@ -56,7 +78,6 @@ BOOST_AUTO_TEST_SUITE(ConfigVariable)
         BOOST_TEST(cv.getTransformedTimeSeriesValues(fx.getTimeSeries()) == expectedTransformedValues);
 
     }
-
 
     BOOST_AUTO_TEST_CASE(ConfigVariable_simpleReturns_happyPath, *utf::tolerance(tol))
     {
@@ -166,16 +187,22 @@ BOOST_AUTO_TEST_SUITE(DataSet)
         Common::DataSet ds;
         ds.addData(ts), ds.addData(otherTs);
 
+        Common::DataSet otherDs(std::vector<Common::TimeSeries>{ts, otherTs});
+        BOOST_CHECK(ds == otherDs);
+
         const boost::gregorian::date inRangeDate = boost::gregorian::date(2017, 12, 31);
         const boost::gregorian::date otherInRangeDate = boost::gregorian::date(2018, 03, 31);
 
         BOOST_CHECK_EQUAL(ds.getValue(variableName, inRangeDate), values[3]);
         BOOST_CHECK_EQUAL(ds.getValue(otherVariableName, otherInRangeDate), otherValues[4]);
+        BOOST_CHECK_THROW(ds.getValue("US_CPI", otherInRangeDate), std::runtime_error);
 
         ds.removeData(otherVariableName);
         BOOST_CHECK_EQUAL(ds.getData().size(), 1);
+        BOOST_CHECK(ds != otherDs);
         BOOST_CHECK(ds.getData().at(variableName) == ts);
         BOOST_CHECK(ds.getTimeSeries(variableName) == ts);
+        BOOST_CHECK_THROW(ds.getTimeSeries("US_CPI"), std::runtime_error);
     }
 BOOST_AUTO_TEST_SUITE_END()
 
@@ -206,6 +233,16 @@ BOOST_AUTO_TEST_SUITE(ConfigModelSpec)
 
     const std::string inputDataSetFileName = "readJSON_data_test.json";
 
+    BOOST_AUTO_TEST_CASE(ConfigModelSpec_badIdVariables)
+    {
+        Fixture fx;
+        fx.f_modelSubType = "growth";
+        fx.f_m = 1;
+
+        BOOST_CHECK_THROW(Common::ConfigModelSpecRelative cms(fx.f_dv, std::vector<Common::ConfigVariable>(), fx.f_modelSubType, fx.f_m),
+                std::runtime_error);
+    }
+
     BOOST_AUTO_TEST_CASE(ConfigModelSpec_relative_growth_happyPath)
     {
         Fixture fx;
@@ -215,6 +252,18 @@ BOOST_AUTO_TEST_SUITE(ConfigModelSpec)
         Common::ConfigModelSpecRelative cms(fx.f_dv, fx.f_ivs, fx.f_modelSubType, fx.f_m);
         BOOST_CHECK(cms.getDependentVariable() == fx.f_dv);
         BOOST_CHECK(cms.getIndependentVariables() == fx.f_ivs);
+
+        //Testing copy semantics
+        Common::ConfigModelSpecRelative ccms(cms);
+        BOOST_CHECK(cms == ccms);
+        ccms = cms;
+        BOOST_CHECK(cms == ccms);
+
+        //Testing move semantics
+        Common::ConfigModelSpecRelative mcms(std::move(ccms));
+        BOOST_CHECK(cms == mcms);
+        mcms = Common::ConfigModelSpecRelative(cms);
+        BOOST_CHECK(cms == mcms);
 
         Common::DataSet ds;
         loadDataSet(inputRelativePath + inputDataSetFileName, ds);
@@ -226,6 +275,8 @@ BOOST_AUTO_TEST_SUITE(ConfigModelSpec)
 
         spec.calibrate(ds);
         BOOST_CHECK_EQUAL(spec.predict(ds, ds.getTimeSeries(fx.f_dv.getBasename()).getValues().size() - 1), dvExpectedValue);
+        BOOST_CHECK_EQUAL(spec.getModelSubType(), fx.f_modelSubType);
+        BOOST_CHECK_EQUAL(spec.getMultiplier(), fx.f_m);
     }
 
     BOOST_AUTO_TEST_CASE(ConfigModelSpec_regression_startDate_happyPath)
@@ -240,10 +291,83 @@ BOOST_AUTO_TEST_SUITE(ConfigModelSpec)
         loadDataSet(inputRelativePath + inputDataSetFileName, ds);
 
         BOOST_CHECK_EQUAL(spec.getFirstValidRegressionDate(ds), expectedFirstValidRegressionDate);
+        BOOST_CHECK_EQUAL(spec.getModelSubType(), fx.f_modelSubType);
 
         fx.f_startDate = boost::gregorian::date(2008, 3, 31);
         Common::ConfigModelSpecRegression anotherSpec(fx.f_dv, fx.f_ivs, fx.f_modelSubType, fx.f_startDate);
         BOOST_CHECK_EQUAL(anotherSpec.getFirstValidRegressionDate(ds), fx.f_startDate);
+    }
+
+BOOST_AUTO_TEST_SUITE_END()
+
+
+BOOST_AUTO_TEST_SUITE(ConfigModelSpecTable)
+    struct Fixture
+    {
+        //Default fixture
+        Fixture() : f_dv("DOW_JONES|R|0"), f_ivs({Common::ConfigVariable("US_GDP|R|0"),
+                                                  Common::ConfigVariable("WTI|R|1"),
+                                                  Common::ConfigVariable("UK_CPI|R|2")}),
+                    f_m(), f_modelSubType(), f_startDate() {}
+
+        //Fixture with parameters
+        Fixture(const std::string rawDepVarName, std::initializer_list<Common::ConfigVariable> rawIDepVariables) :
+                f_dv(rawDepVarName), f_ivs({rawIDepVariables}), f_m(), f_modelSubType(), f_startDate() {}
+
+
+        const Common::ConfigVariable f_dv;
+        const std::vector<Common::ConfigVariable> f_ivs;
+        int f_m;
+        std::string f_modelSubType;
+        boost::gregorian::date f_startDate;
+
+    };
+
+    BOOST_AUTO_TEST_CASE(ConfigModelSpecTable_all)
+    {
+        Fixture defFx;
+        defFx.f_modelSubType = "ols_lm";
+        defFx.f_startDate = boost::gregorian::from_string("2005/09/10");
+
+        Fixture otherFx("UK_HPI|L|0", {Common::ConfigVariable("UK_UNEMP|D|1"), Common::ConfigVariable("UK_CPI|R|0")});
+        otherFx.f_modelSubType = "garch";
+        otherFx.f_startDate = boost::gregorian::from_string("1987/12/31");
+
+        Common::ConfigModelSpecRegression spec(defFx.f_dv, defFx.f_ivs, defFx.f_modelSubType, defFx.f_startDate);
+        Common::ConfigModelSpecRegression otherSpec(otherFx.f_dv, otherFx.f_ivs, otherFx.f_modelSubType, otherFx.f_startDate);
+
+        //Test constructors
+        Common::ConfigModelSpecTable table;
+        table.addModelSpec(spec), table.addModelSpec(otherSpec);
+
+        //[AC] Note that a simple initialization list wouldn't work here as move construction is not currently supported
+        //std::unique_ptr is not copyable but only movable
+        std::vector<std::unique_ptr<Common::ConfigModelSpec>> v;
+        v.push_back(std::make_unique<Common::ConfigModelSpecRegression>(spec)), v.push_back(std::make_unique<Common::ConfigModelSpecRegression>(otherSpec));
+        Common::ConfigModelSpecTable otherTable(v);
+        BOOST_CHECK(table == otherTable);
+
+        //Test copy semantics
+        Common::ConfigModelSpecTable cTable(table);
+        BOOST_CHECK(table == cTable);
+        cTable = otherTable;
+        BOOST_CHECK(cTable == table);
+
+        //Test move semantics
+        Common::ConfigModelSpecTable mvTable(std::move(cTable));
+        BOOST_CHECK(table == mvTable);
+        mvTable = Common::ConfigModelSpecTable(table);
+        BOOST_CHECK(table == mvTable);
+
+        BOOST_CHECK_EQUAL(table.getConfigModelSpecTable().size(), 2);
+        BOOST_CHECK(*table.getConfigModelSpec(otherFx.f_dv.getBasename()) == otherSpec);
+
+        table.removeData(otherFx.f_dv.getBasename());
+        BOOST_CHECK_THROW(*table.getConfigModelSpec(otherFx.f_dv.getBasename()), std::out_of_range);
+
+        table.clearAllData();
+        BOOST_CHECK_EQUAL(table.getConfigModelSpecTable().size(), 0);
+        BOOST_CHECK(table != otherTable);
     }
 
 BOOST_AUTO_TEST_SUITE_END()
