@@ -12,6 +12,10 @@
 
 namespace Math
 {
+    boost::numeric::ublas::matrix<double> inverseBST (const boost::numeric::ublas::matrix<double> &inputMatrix);
+    boost::numeric::ublas::vector<double> stdVec2bstVec (const std::vector<double> &inputVector);
+    std::vector<double> bstVec2stdVec (const boost::numeric::ublas::vector<double> &inputVector);
+
     class RegressionModel
     {
     public:

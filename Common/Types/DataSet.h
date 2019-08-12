@@ -9,6 +9,7 @@
 #include <vector>
 #include <unordered_map>
 #include <boost/date_time/gregorian/gregorian.hpp>
+#include "TimeSeries.h"
 
 namespace Common
 {

@@ -10,7 +10,7 @@ SET(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} ${GCC_COVERAGE_COMPILE_FLAGS}")
 
 include_directories(${Boost_INCLUDE_DIR})
 
-add_executable(UTests UnitTests/UnitTests_Config.cpp UnitTests/UnitTests_Utils.cpp wildcatSTKCoreIncludes.h UnitTests/UnitTests_Math.cpp UnitTests/Utils.h)
+add_executable(UTests UnitTests/UnitTests_Config.cpp UnitTests/UnitTests_Utils.cpp UnitTests/UnitTests_Math.cpp UnitTests/Utils.h)
 target_include_directories(UTests PRIVATE ${BOOST_INCLUDE_DIRS})
 
 target_link_libraries(UTests wildcatSTKCore ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY})
