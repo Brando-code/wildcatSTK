@@ -9,6 +9,7 @@
 #include <boost/test/unit_test.hpp>
 #include <boost/test/unit_test_suite.hpp>
 #include "../wildcatSTKCoreIncludes.h"
+#include "../Common/Math/MLRegression/RegressionModel.h"
 
 #include <cmath>
 #include <random>
@@ -97,6 +98,52 @@ BOOST_AUTO_TEST_SUITE(Relative)
         mdl.calibrate(coeffs, lhsData, rhsData);
         BOOST_CHECK_EQUAL(coeffs.size(), 1);
         BOOST_CHECK_EQUAL(coeffs[0], expectedParameter);
+    }
+
+BOOST_AUTO_TEST_SUITE_END()
+
+BOOST_AUTO_TEST_SUITE(MLRegression)
+
+    // Matrix reader
+    void readMatrix (const boost::numeric::ublas::matrix<double>& matrix)
+    {
+        for (int i = 0; i < matrix.size1(); ++i)
+        {
+            for (int j = 0; j < matrix.size2(); ++j)
+            {
+                std::cout << matrix(i, j) << "\t";
+            }
+            std::cout << std::endl;
+        }
+    }
+
+    BOOST_AUTO_TEST_CASE(InversionMatrixTest)
+    {
+        boost::numeric::ublas::matrix<double> inputMatrix(3, 3);
+
+        inputMatrix(0, 0) = 1.; inputMatrix(0, 1) = 3.; inputMatrix(0, 2) = 3.;
+        inputMatrix(1, 0) = 1.; inputMatrix(1, 1) = 4.; inputMatrix(1, 2) = 3.;
+        inputMatrix(2, 0) = 1.; inputMatrix(2, 1) = 3.; inputMatrix(2, 2) = 4.;
+
+        /*std::cout << "The input matrix is:" << std::endl;
+        readMatrix(inputMatrix);*/
+
+        boost::numeric::ublas::matrix<double> invertedMatrix(Math::inverseBST(inputMatrix));
+
+        /*std::cout << "The inverted matrix is:" << std::endl;
+        readMatrix(invertedMatrix);*/
+
+        boost::numeric::ublas::matrix<double> expectedMatrix(3, 3);
+
+        expectedMatrix(0, 0) = 7.; expectedMatrix(0, 1) = -3.; expectedMatrix(0, 2) = -3.;
+        expectedMatrix(1, 0) = -1.; expectedMatrix(1, 1) = 1.; expectedMatrix(1, 2) = 0.;
+        expectedMatrix(2, 0) = -1.; expectedMatrix(2, 1) = 0.; expectedMatrix(2, 2) = 1.;
+
+        for (unsigned int i = 0; i < expectedMatrix.size1(); ++i)
+            for (unsigned int j = 0; j < expectedMatrix.size2(); ++j)
+            {
+                BOOST_TEST(invertedMatrix(i, j) == expectedMatrix(i, j));
+            }
     }
 
 BOOST_AUTO_TEST_SUITE_END()

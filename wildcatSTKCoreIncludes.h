@@ -18,4 +18,6 @@
 
 #include "Global/Mappings/FactoryMappings.h"
 
+//#include "Common/Math/LinearAlgebra.hpp"
+
 #endif //QUANTLIB_WILDCATSTKCOREINCLUDES_H
