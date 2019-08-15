@@ -10,8 +10,10 @@
 #include <boost/test/unit_test_suite.hpp>
 #include <iostream>
 #include <cmath>
+#include "Utils.h"
 #include "../Common/Config/ConfigVariable.h"
 #include "../Common/Config/ConfigModelSpec.h"
+#include "../Common/Config/CurveModelDef.h"
 #include "../Common/Types/TimeSeries.h"
 #include "../Common/Types/DataSet.h"
 #include "../Common/Types/ConfigModelSpecTable.h"
@@ -368,6 +370,43 @@ BOOST_AUTO_TEST_SUITE(ConfigModelSpecTable)
         table.clearAllData();
         BOOST_CHECK_EQUAL(table.getConfigModelSpecTable().size(), 0);
         BOOST_CHECK(table != otherTable);
+    }
+
+BOOST_AUTO_TEST_SUITE_END()
+
+
+BOOST_AUTO_TEST_SUITE(curveModel)
+    struct Fixture
+    {
+        Fixture() : f_tenors({"US_TBILL_3M", "US_TBILL_6M", "US_TSY_1Y", "US_TSY_5Y", "US_TSY_10Y", "US_TSY_20Y"}),
+                    f_curveName("us_govi_curve"), f_interpolation("linear") {}
+
+        std::vector<std::string> f_tenors;
+        std::string f_curveName;
+        std::string f_interpolation;
+    };
+
+    BOOST_AUTO_TEST_CASE(yieldCurve)
+    {
+        Common::CurveModelDef cmd(Fixture().f_curveName, Fixture().f_interpolation, Fixture().f_tenors);
+        boost::gregorian::date d(2010, 6, 30);
+
+        Common::JSONParserDecoratorDataSet js;
+        js.readJSON(inputRelativePath + "curveModelDef_data_test.json");
+        const Common::DataSet ds = js.getDataSet();
+
+        Common::YieldCurve expectedCurve;
+        for (const auto& it: Fixture().f_tenors)
+        {
+            const double t = Common::getTenorInYearsFromVariableName(it), val = ds.getValue(it, d);
+            expectedCurve.emplace(t, val);
+        }
+
+        Common::YieldCurve actualCurve = cmd.getYieldCurve(ds, d);
+        BOOST_CHECK_EQUAL_COLLECTIONS(actualCurve.begin(), actualCurve.end(),
+                expectedCurve.begin(), expectedCurve.end());
+        BOOST_CHECK_EQUAL(cmd.getCurveName(), Fixture().f_curveName);
+        BOOST_CHECK_EQUAL(cmd.getInterpolationMethodName(), Fixture().f_interpolation);
     }
 
 BOOST_AUTO_TEST_SUITE_END()

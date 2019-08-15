@@ -12,24 +12,27 @@
 #include <boost/date_time/gregorian/gregorian.hpp>
 #include <unordered_map>
 
-using YieldCurve = std::map<double, double>;
 
 namespace Common
 {
     class DataSet;
+    using YieldCurve = std::map<double, double>;
 
     class CurveModelDef
     {
     public:
-        CurveModelDef(std::string curveName, const std::vector<std::string>& tenorVariableNames);
+        CurveModelDef(std::string curveName,
+                std::string interpolationMethodName,
+                const std::vector<std::string>& tenorVariableNames);
 
         //YieldCurve getYieldCurve(const Common::DataSet& ds, unsigned int index) const;
         YieldCurve getYieldCurve(const Common::DataSet& ds, const boost::gregorian::date& date) const;
         std::string getCurveName() const;
+        std::string getInterpolationMethodName() const;
 
     private:
         std::unordered_map<std::string, double> m_tenors;
-        //std::vector<double> m_tenorsInYears;
+        std::string m_interpMethodName;
         std::string m_curveName;
     };
 }

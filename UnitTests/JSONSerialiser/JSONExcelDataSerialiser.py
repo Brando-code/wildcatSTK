@@ -1,5 +1,3 @@
-#!/usr/local/bin/python3.6
-
 import sys
 import pandas as pd
 import json
