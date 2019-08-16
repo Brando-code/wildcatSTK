@@ -410,14 +410,14 @@ BOOST_AUTO_TEST_SUITE(curveModel)
         BOOST_CHECK_EQUAL_COLLECTIONS(actualCurve.begin(), actualCurve.end(),
                 expectedCurve.begin(), expectedCurve.end());
         BOOST_CHECK_EQUAL(cmd.getCurveName(), Fixture().f_curveName);
-        
+
         //Common::CurveModelDef mcmd(Common::CurveModelDef(Fixture().f_curveName, Fixture().f_interpolation, Fixture().f_tenors));
         //Test copy semantics
         Common::CurveModelDef ccmd(cmd);
         BOOST_CHECK(ccmd == cmd);
         ccmd = cmd;
         BOOST_CHECK(ccmd == cmd);
-        
+
         //Test move semantics
         Common::CurveModelDef mcmd(std::move(ccmd));
         BOOST_CHECK(mcmd == cmd);
@@ -427,7 +427,6 @@ BOOST_AUTO_TEST_SUITE(curveModel)
 
     BOOST_AUTO_TEST_CASE(curveModelSpec_linear)
     {
-        Fixture fx;
         Common::ConfigMap<Common::CurveModelDef> m;
         m.addConfigItem(Fixture().f_curveName, Common::CurveModelDef(Fixture().f_curveName, Fixture().f_interpolation, Fixture().f_tenors));
 
@@ -439,7 +438,27 @@ BOOST_AUTO_TEST_SUITE(curveModel)
         loadDataSet(inputRelativePath + "curveModelDef_data_test.json", ds);
 
         const double r = m.getValue(Fixture().f_curveName) -> interpolate(variable, d, ds);
-        std::cerr << r << std::endl;
+        const double expectedR = 2.262;
+        BOOST_CHECK_EQUAL(r, expectedR);
+    }
+
+    BOOST_AUTO_TEST_CASE(curveModelSpec_cubic)
+    {
+        Fixture fx;
+        fx.f_interpolation = "cubic";
+        Common::ConfigMap<Common::CurveModelDef> m;
+        m.addConfigItem(fx.f_curveName, Common::CurveModelDef(fx.f_curveName, fx.f_interpolation, fx.f_tenors));
+
+        const Common::ConfigVariable variable("US_TSY_7Y|L|0");
+
+        boost::gregorian::date d(2010, 6, 30);
+
+        Common::DataSet ds;
+        loadDataSet(inputRelativePath + "curveModelDef_data_test.json", ds);
+
+        const double r = m.getValue(Fixture().f_curveName) -> interpolate(variable, d, ds);
+        const double expectedR = 2.3869750481261525;
+        BOOST_CHECK_EQUAL(r, expectedR);
     }
 
 BOOST_AUTO_TEST_SUITE_END()
