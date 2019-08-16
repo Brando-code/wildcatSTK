@@ -4,6 +4,8 @@
 
 #include "FactoryMappings.h"
 #include "../../Common/Config/ConfigVariable.h"
+#include "../../Common/Math/Relative/RelativeModel.h"
+#include "../../Common/Math/Interpolation/Interpolator.h"
 
 using namespace Global;
 
@@ -36,7 +38,7 @@ Common::TransformationTypeFactory* TransformationTypeCodeFactoryMapping::getFact
     if (m_mapping.find(transformationTypeCode) != m_mapping.end())
         return m_mapping.at(transformationTypeCode);
     else
-        throw std::out_of_range("E: Common::TransformationTypeFactory::getFactory : unknown transformation code " +
+        throw std::out_of_range("E: Global::TransformationTypeFactory::getFactory : unknown transformation code " +
                                 transformationTypeCode);
 }
 
@@ -68,6 +70,37 @@ Math::RelativeModelFactory* RelativeModelFactoryMapping::getFactory(const std::s
     if (m_mapping.find(relativeModelSubTypeName) != m_mapping.end())
         return m_mapping.at(relativeModelSubTypeName);
     else
-        throw std::out_of_range("E: Common::TransformationTypeFactory::getFactory : unknown transformation code " +
+        throw std::out_of_range("E: Global::TransformationTypeFactory::getFactory : unknown transformation code " +
                                 relativeModelSubTypeName);
+}
+
+InterpolatorFactoryMapping* InterpolatorFactoryMapping::m_instance = nullptr;
+
+InterpolatorFactoryMapping::InterpolatorFactoryMapping()
+{
+    const std::vector<std::string> allowedInterpolationMethods = {"linear", "cubic"};
+    m_mapping.emplace(allowedInterpolationMethods[0], new Math::LinearInterpolatorFactory());
+    m_mapping.emplace(allowedInterpolationMethods[1], new Math::NaturalCubicSplineInterpolatorFactory());
+}
+
+InterpolatorFactoryMapping* InterpolatorFactoryMapping::instance()
+{
+    if (!m_instance)
+        m_instance = new InterpolatorFactoryMapping();
+
+    return m_instance;
+}
+
+std::map<std::string, Math::InterpolatorFactory *> InterpolatorFactoryMapping::getMapping() const
+{
+    return m_mapping;
+}
+
+Math::InterpolatorFactory* InterpolatorFactoryMapping::getFactory(const std::string &interpolationMethodName) const
+{
+    if (m_mapping.find(interpolationMethodName) != m_mapping.end())
+        return m_mapping.at(interpolationMethodName);
+    else
+        throw std::out_of_range("E: Global::TransformationTypeFactory::getFactory : unknown transformation code " +
+        interpolationMethodName);
 }

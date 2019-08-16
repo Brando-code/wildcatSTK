@@ -23,9 +23,10 @@ add_library(wildcatSTKCore Common/Config/ConfigVariable.cpp Common/Config/Config
         Common/Config/ConfigModelSpec.h Common/Math/Relative/RelativeModel.cpp Common/Math/Relative/RelativeModel.h
         Common/Utils/IO/JSONParser.cpp Common/Utils/IO/JSONParser.h Common/Utils/IO/CSVParser.cpp Common/Utils/IO/CSVParser.h
         Common/Math/Statistics/Stat.cpp Common/Math/Statistics/Stat.h Common/Math/MLRegression/RegressionModel.cpp
-        Common/Math/MLRegression/RegressionModel.h Common/Types/ConfigModelSpecTable.cpp Common/Types/ConfigModelSpecTable.h Common/Concepts.h
+        Common/Math/MLRegression/RegressionModel.h Common/Concepts.h
         Common/Config/CurveModelDef.cpp Common/Config/CurveModelDef.h Common/Math/Interpolation/Interpolator.cpp Common/Math/Interpolation/Interpolator.h
         Common/Math/Interpolation/LinearInterpolator.cpp Common/Math/Interpolation/LinearInterpolator.h
-        Common/Math/Interpolation/NaturalCubicSplineInterpolator.cpp Common/Math/Interpolation/NaturalCubicSplineInterpolator.h)
+        Common/Math/Interpolation/NaturalCubicSplineInterpolator.cpp Common/Math/Interpolation/NaturalCubicSplineInterpolator.h
+        Common/Types/ConfigMap.cpp Common/Types/ConfigMap.h)
 
 target_link_libraries(wildcatSTKCore ${Boost_LIBRARIES})

@@ -8,11 +8,11 @@
 
 #include <string>
 #include <map>
-#include "../../Common/Math/Relative/RelativeModel.h"
 
 namespace Math
 {
     class RelativeModelFactory;
+    class InterpolatorFactory;
 }
 
 namespace Common
@@ -36,6 +36,7 @@ namespace Global
         std::map<std::string, Common::TransformationTypeFactory *> m_mapping;
     };
 
+
     class RelativeModelFactoryMapping
     {
     public:
@@ -48,6 +49,21 @@ namespace Global
 
         static RelativeModelFactoryMapping *m_instance;
         std::map<std::string, Math::RelativeModelFactory *> m_mapping;
+    };
+
+
+    class InterpolatorFactoryMapping
+    {
+    public:
+        static InterpolatorFactoryMapping* instance();
+        std::map<std::string, Math::InterpolatorFactory *> getMapping() const;
+        Math::InterpolatorFactory *getFactory(const std::string &interpolationMethodName) const;
+
+    private:
+        InterpolatorFactoryMapping();
+
+        static InterpolatorFactoryMapping* m_instance;
+        std::map<std::string, Math::InterpolatorFactory *> m_mapping;
     };
 }
 

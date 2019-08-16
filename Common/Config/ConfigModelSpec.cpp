@@ -10,6 +10,7 @@
 #include "../Types/TimeSeries.h"
 #include "../../Global/Mappings/FactoryMappings.h"
 #include "../Math/MLRegression/RegressionModel.h"
+#include "../Math/Relative/RelativeModel.h"
 
 
 //ConfigModelSpec class implementation

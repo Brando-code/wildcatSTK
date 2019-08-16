@@ -24,6 +24,7 @@ namespace Math
     };
 
 
+    //Data structure encapsulating cubic spline parameters
     struct CSCoeffs
     {
         CSCoeffs() = default;
@@ -40,6 +41,28 @@ namespace Math
 
 
     using CSpline = std::map<double, Math::CSCoeffs>;
+
+
+    //Abstract factory classes
+    class InterpolatorFactory
+    {
+    public:
+        virtual std::unique_ptr<Math::Interpolator> create() const = 0;
+
+        virtual ~InterpolatorFactory() = default;
+    };
+
+    class LinearInterpolatorFactory : public InterpolatorFactory
+    {
+    public:
+        std::unique_ptr<Math::Interpolator> create() const final;
+    };
+
+    class NaturalCubicSplineInterpolatorFactory : public InterpolatorFactory
+    {
+    public:
+        std::unique_ptr<Math::Interpolator> create() const final;
+    };
 }
 
 

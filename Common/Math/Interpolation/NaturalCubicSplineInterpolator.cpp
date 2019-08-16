@@ -157,3 +157,10 @@ std::unique_ptr<Math::Interpolator> Math::NaturalCubicSplineInterpolator::clone(
 {
     return std::make_unique<Math::NaturalCubicSplineInterpolator>(*this);
 }
+
+
+//NaturalCubicSplineInterpolator factory method
+std::unique_ptr<Math::Interpolator> Math::NaturalCubicSplineInterpolatorFactory::create() const
+{
+    return std::make_unique<Math::NaturalCubicSplineInterpolator>(Math::NaturalCubicSplineInterpolator());
+}
