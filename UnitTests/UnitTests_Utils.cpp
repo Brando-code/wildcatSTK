@@ -14,10 +14,10 @@
 #include <cmath>
 #include "../Common/Utils/IO/JSONParser.h"
 #include "../Common/Utils/General/Tools.h"
-//#include "../Common/Types/TimeSeries.h"
 
 
 namespace utf = boost::unit_test;
+namespace tt = boost::test_tools;
 
 const std::string inputRelativePath = "../UnitTests/Inputs/";
 const std::string actualOutputRelativePath = "../UnitTests/Outputs/Actual/";
@@ -67,6 +67,58 @@ BOOST_AUTO_TEST_SUITE(Tools)
 
         rateVariableName = "SONIA_46U";
         BOOST_CHECK_THROW(Common::getTenorInYearsFromVariableName(rateVariableName), std::runtime_error);
+    }
+
+    BOOST_AUTO_TEST_CASE(StringSplitAlgebraic_happyPath)
+    {
+        std::string expression = "a + b * c / d ^ n + 2.5";
+        Common::StringSplitAlgebraicDecorator adc;
+
+        adc.splitExpression(expression);
+        const std::vector<std::string> expectedComponents = {"a", "b", "c", "d", "n", "2.5"};
+        const std::vector<std::string> expectedOperators = {"+", "*", "/", "^", "+"};
+        BOOST_TEST(adc.get() == expectedComponents, tt::per_element());
+        BOOST_TEST(adc.getOrderedOperators() == expectedOperators, tt::per_element());
+    }
+
+    BOOST_AUTO_TEST_CASE(StringSplitAlgebraic_invalid)
+    {
+        std::string expression = "+ a + b * * c / d ^ n";
+        Common::StringSplitAlgebraicDecorator adc;
+
+        BOOST_CHECK_THROW(adc.splitExpression(expression), std::runtime_error);
+    }
+
+    BOOST_AUTO_TEST_CASE(EvaluateStringExpression_happyPath)
+    {
+        std::string expression = "a + b * c / d ^ n + 2.5";
+        Common::AlgebraicExpressionParser aep(expression);
+
+        std::unordered_map<std::string, double> kvp = {{"a", 1}, {"b", 2}, {"c", 6},
+                                                       {"d", 2}, {"n", 2}};
+
+        const double expected = 1. + 2. * 6./pow(2, 2) + 2.5;
+        const double actual = aep.evaluate(kvp);
+        BOOST_CHECK_EQUAL(actual, expected);
+    }
+
+    BOOST_AUTO_TEST_CASE(EvaluateStringExpression_power_happyPath)
+    {
+        std::string expression = "a^n^m - b * c * d * 2.5";
+        Common::AlgebraicExpressionParser aep(expression);
+
+        std::unordered_map<std::string, double> kvp = {{"a", 3}, {"b", 2}, {"c", 6},
+                                                       {"d", 2}, {"n", 2}, {"m", 2}};
+
+        const double expected = pow(3, 4) - 2 * 6 * 2 * 2.5;
+        const double actual = aep.evaluate(kvp);
+        BOOST_CHECK_EQUAL(actual, expected);
+    }
+
+    BOOST_AUTO_TEST_CASE(EvaluateStringExpression_invalid)
+    {
+        std::string expression = "*a + b * + c / d ^ n + 2.5";
+        BOOST_CHECK_THROW(Common::AlgebraicExpressionParser aep(expression), std::runtime_error);
     }
 
 BOOST_AUTO_TEST_SUITE_END()

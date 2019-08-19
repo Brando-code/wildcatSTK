@@ -7,6 +7,7 @@
 
 #include <boost/algorithm/string.hpp>
 #include <vector>
+#include <unordered_map>
 
 namespace Common
 {
@@ -25,7 +26,7 @@ namespace Common
         StringSplitDecorator();
 
         virtual void split(const std::string &string, const std::string &pattern) = 0;
-        virtual std::vector<std::string> get() const = 0;
+        std::vector<std::string> get() const;
 
         virtual ~StringSplitDecorator() = default;
 
@@ -40,10 +41,38 @@ namespace Common
     public:
         void split(const std::string &string, const std::string &pattern) final;
 
-        std::vector<std::string> get() const final;
         std::string getBasename() const;
         std::string getTransformationTypeCode() const;
         unsigned int getLagDependency() const;
+    };
+
+
+    class StringSplitAlgebraicDecorator : public StringSplitDecorator
+    {
+    public:
+        void splitExpression(const std::string &string);
+        std::vector<std::string> getOrderedOperators() const;
+
+    private:
+        void split(const std::string &string, const std::string &pattern) final;
+        static bool _isOperator(const std::string& string);
+        bool _isValidExpression() const;
+        std::vector<std::string> m_operators;
+    };
+
+
+    class AlgebraicExpressionParser
+    {
+    public:
+        AlgebraicExpressionParser(const std::string& expression);
+
+        void setExpression(const std::string& expression);
+        std::vector<std::string> getComponents() const;
+
+        double evaluate(const std::unordered_map<std::string, double> variableValuePairs) const;
+
+    private:
+        Common::StringSplitAlgebraicDecorator m_strsplit;
     };
 
     //Tool global functions : may be re-organized into separate header or class at a later stage
