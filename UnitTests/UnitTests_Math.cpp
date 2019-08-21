@@ -223,4 +223,36 @@ BOOST_AUTO_TEST_SUITE(MLRegression)
             }
     }
 
+    BOOST_AUTO_TEST_CASE(CholeskyDecompositionTest, *utf::tolerance(1e-4))
+    {
+        int dim = 4.;
+        boost::numeric::ublas::matrix<double> inputMatrix(dim, dim);
+
+        inputMatrix(0, 0) = 18.; inputMatrix(0, 1) = 22.; inputMatrix(0, 2) = 54.; inputMatrix(0, 3) = 42.;
+        inputMatrix(1, 0) = 22.; inputMatrix(1, 1) = 70.; inputMatrix(1, 2) = 86.; inputMatrix(1, 3) = 62.;
+        inputMatrix(2, 0) = 54.; inputMatrix(2, 1) = 86.; inputMatrix(2, 2) = 174.; inputMatrix(2, 3) = 134.;
+        inputMatrix(3, 0) = 42.; inputMatrix(3, 1) = 62.; inputMatrix(3, 2) = 134.; inputMatrix(3, 3) = 106.;
+
+        /*std::cout << "The input matrix is:" << std::endl;
+        readMatrix(inputMatrix);*/
+
+        boost::numeric::ublas::matrix<double> factorizedMatrix(Math::choleskyDecomp(inputMatrix));
+
+        /*std::cout << "The factorized matrix is:" << std::endl;
+        readMatrix(factorizedMatrix);*/
+
+        boost::numeric::ublas::matrix<double> expectedMatrix(dim, dim);
+
+        expectedMatrix(0, 0) = 4.24264; expectedMatrix(0, 1) = 0.00000; expectedMatrix(0, 2) = 0.00000; expectedMatrix(0, 3) = 0.00000;
+        expectedMatrix(1, 0) = 5.18545; expectedMatrix(1, 1) = 6.56591; expectedMatrix(1, 2) = 0.00000; expectedMatrix(1, 3) = 0.00000;
+        expectedMatrix(2, 0) = 12.72792; expectedMatrix(2, 1) = 3.04604; expectedMatrix(2, 2) = 1.64974; expectedMatrix(2, 3) = 0.00000;
+        expectedMatrix(3, 0) = 9.89949; expectedMatrix(3, 1) = 1.62455; expectedMatrix(3, 2) = 1.84971; expectedMatrix(3, 3) = 1.39262;
+
+        for (unsigned int i = 0; i < expectedMatrix.size1(); ++i)
+            for (unsigned int j = 0; j < expectedMatrix.size2(); ++j)
+            {
+                BOOST_TEST(factorizedMatrix(i, j) == expectedMatrix(i, j));
+            }
+    }
+
 BOOST_AUTO_TEST_SUITE_END()

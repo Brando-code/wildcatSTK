@@ -6,7 +6,7 @@ set(CMAKE_CXX_STANDARD 14)
 find_package(Boost 1.62.0 REQUIRED COMPONENTS unit_test_framework date_time)
 
 SET(GCC_COVERAGE_COMPILE_FLAGS "-fprofile-arcs -ftest-coverage")
-SET(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} ${GCC_COVERAGE_COMPILE_FLAGS}")
+SET(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} ${GCC_COVERAGE_COMPILE_FLAGS} -ggdb")
 
 include_directories(${Boost_INCLUDE_DIR})
 
