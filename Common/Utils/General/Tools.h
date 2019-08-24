@@ -8,6 +8,8 @@
 #include <boost/algorithm/string.hpp>
 #include <vector>
 #include <unordered_map>
+#include <queue>
+#include "AlgebraicExpressionInterpreter.h"
 
 namespace Common
 {
@@ -50,30 +52,45 @@ namespace Common
     class StringSplitAlgebraicDecorator : public StringSplitDecorator
     {
     public:
+        StringSplitAlgebraicDecorator();
+        StringSplitAlgebraicDecorator(const Common::OperatorsGrammar& opGrammar);
         void splitExpression(const std::string &string);
         std::vector<std::string> getOrderedOperators() const;
+        std::vector<std::string> getTokenized() const;
+
+        void setOperatorsGrammar(const Common::OperatorsGrammar& opGrammar);
 
     private:
         void split(const std::string &string, const std::string &pattern) final;
-        static bool _isOperator(const std::string& string);
         bool _isValidExpression() const;
         std::vector<std::string> m_operators;
+        std::vector<std::string> m_tokenized;
+
+        std::unique_ptr<Common::OperatorsGrammar> m_opGrammar;
     };
 
 
     class AlgebraicExpressionParser
     {
     public:
-        AlgebraicExpressionParser(const std::string& expression);
+        AlgebraicExpressionParser(const std::string& expression, const Common::OperatorsGrammar& opGrammar);
 
-        void setExpression(const std::string& expression);
-        std::vector<std::string> getComponents() const;
+        void setExpression(const std::string& other);
+        void setOperatorGrammar(const Common::OperatorsGrammar& other);
 
-        double evaluate(const std::unordered_map<std::string, double> variableValuePairs) const;
+        double evaluate(const Common::AlgebraicExpressionContext& context);
 
     private:
-        Common::StringSplitAlgebraicDecorator m_strsplit;
+        std::unique_ptr<Common::OperatorsGrammar> m_opGrammar;
+        std::string m_expr;
+
+        std::vector<std::string>::const_iterator m_itToken;
+        std::vector<std::string>::const_iterator m_itExprEnd;
+
+        std::unique_ptr<Common::AlgebraicExpression> _parsePrimary(void);
+        std::unique_ptr<Common::AlgebraicExpression> _parseExpression(unsigned int lowestPrecedenceValue);
     };
+
 
     //Tool global functions : may be re-organized into separate header or class at a later stage
     double getTenorInYearsFromVariableName(const std::string& variableName);

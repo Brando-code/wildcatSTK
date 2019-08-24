@@ -3,6 +3,8 @@
 //
 
 #include "Tools.h"
+#include "AlgebraicExpressionInterpreter.h"
+#include "../../../Global/Mappings/FactoryMappings.h"
 
 using namespace Common;
 
@@ -60,22 +62,53 @@ unsigned int StringSplitConfigVariableDecorator::getLagDependency() const
         return static_cast<unsigned int>(lagDependency);
 }
 
+StringSplitAlgebraicDecorator::StringSplitAlgebraicDecorator() : m_opGrammar(nullptr)
+{}
+
+StringSplitAlgebraicDecorator::StringSplitAlgebraicDecorator(const Common::OperatorsGrammar &opGrammar) : m_opGrammar(opGrammar.clone())
+{}
+
 void StringSplitAlgebraicDecorator::split(const std::string &string, const std::string &pattern)
 {
     const std::string cleanString = boost::algorithm::erase_all_copy(string, " ");
-    m_components = m_strplit.split(cleanString, pattern);
 
-    std::vector<std::string> op;
+    std::vector<std::string> comp, tok, op;
+    std::string token;
     for (unsigned int i = 0; i < cleanString.length(); ++i)
-        if(StringSplitAlgebraicDecorator::_isOperator(std::string(1,cleanString.at(i))))
-            op.push_back(std::string(1, cleanString.at(i)));
+    {
+        const std::string thisToken = std::string(1,cleanString.at(i));
+        if (pattern.find(thisToken) != std::string::npos)
+        {
+            if (!token.empty())
+            {
+                comp.push_back(token);
+                tok.push_back(token);
+            }
+            tok.push_back(thisToken);
+            token.clear();
+            op.push_back(thisToken);
+        }
+        else
+            token += thisToken;
 
+        if (!token.empty() and i == cleanString.size() - 1)
+        {
+            comp.push_back(token);
+            tok.push_back(token);
+        }
+    }
+
+    m_components = std::move(comp);
     m_operators = std::move(op);
+    m_tokenized = std::move(tok);
 }
 
 void StringSplitAlgebraicDecorator::splitExpression(const std::string &string)
 {
-    const std::string pattern = "^*/+-";
+    if (!m_opGrammar)
+        throw std::runtime_error("StringSplitAlgebraicDecorator::split : undefined grammar for algebraic operators.");
+
+    const std::string pattern = m_opGrammar -> getCharOperators();
     split(string, pattern);
 
     if (!_isValidExpression())
@@ -88,110 +121,142 @@ std::vector<std::string> StringSplitAlgebraicDecorator::getOrderedOperators() co
     return m_operators;
 }
 
-bool StringSplitAlgebraicDecorator::_isOperator(const std::string &string)
+std::vector<std::string> StringSplitAlgebraicDecorator::getTokenized() const
 {
-    return string == "^" or string == "*" or string == "/" or string == "+" or string == "-";
+    return m_tokenized;
+}
+
+void StringSplitAlgebraicDecorator::setOperatorsGrammar(const Common::OperatorsGrammar &opGrammar)
+{
+    m_opGrammar = opGrammar.clone();
 }
 
 bool StringSplitAlgebraicDecorator::_isValidExpression() const
 {
-    for (const auto& it: m_components)
-        if (it.empty())
+    if (m_opGrammar -> isOperator(m_tokenized.front()) or m_opGrammar -> isOperator(m_tokenized.back()))
+        return false;
+
+    std::vector<std::string>::const_iterator it = m_tokenized.begin();
+    std::vector<std::string>::const_reverse_iterator jt = m_tokenized.rbegin();
+    for (; it != m_tokenized.end() - 1; ++it)
+    {
+        const std::string thisToken = *it;
+        const std::string nextToken = *(it + 1);
+        if (m_opGrammar -> isOperator(thisToken) and m_opGrammar -> isOperator(nextToken))
+            return false;
+        if (m_opGrammar -> isLeftBracket(thisToken) and m_opGrammar -> isOperator(nextToken))
+            return false;
+        if (m_opGrammar -> isRightBracket(thisToken) and !m_opGrammar -> isOperator(nextToken))
+            return false;
+        if (!m_opGrammar -> isOperator(thisToken) and m_opGrammar -> isLeftBracket(nextToken))
+            return false;
+        if (m_opGrammar -> isOperator(thisToken) and m_opGrammar -> isRightBracket(nextToken))
+            return false;
+        if (m_opGrammar -> isRightBracket(thisToken) and jt == m_tokenized.rbegin())
             return false;
 
+        if (m_opGrammar -> isLeftBracket(thisToken))
+        {
+            while (true)
+            {
+                if (m_opGrammar -> isRightBracket(*jt))
+                {
+                    ++jt;
+                    break;
+                }
+                if (it >= jt.base() - 1)
+                    return false;
+                ++jt;
+            }
+        }
+    }
     return true;
 }
 
 
-//Algebraic expression parser implementation
-Common::AlgebraicExpressionParser::AlgebraicExpressionParser(const std::string &expression)
+//AlgebraicExpressionParser implementation
+AlgebraicExpressionParser::AlgebraicExpressionParser(const std::string &expression, const Common::OperatorsGrammar &opGrammar) :
+    m_opGrammar(opGrammar.clone()), m_expr(expression)
+{}
+
+void AlgebraicExpressionParser::setExpression(const std::string &other)
 {
-    m_strsplit.splitExpression(expression);
+    m_expr = other;
 }
 
-void Common::AlgebraicExpressionParser::setExpression(const std::string &expression)
+void AlgebraicExpressionParser::setOperatorGrammar(const Common::OperatorsGrammar &other)
 {
-    m_strsplit.splitExpression(expression);
+    m_opGrammar = other.clone();
 }
 
-std::vector<std::string> Common::AlgebraicExpressionParser::getComponents() const
+double AlgebraicExpressionParser::evaluate(const Common::AlgebraicExpressionContext &context)
 {
-    return m_strsplit.get();
+    Common::StringSplitAlgebraicDecorator strspl(*m_opGrammar);
+    strspl.splitExpression(m_expr);
+    const std::vector<std::string> tokenized = strspl.getTokenized();
+    m_itToken = tokenized.begin();
+    m_itExprEnd = tokenized.end();
+
+    //Using precedence climbing algorithm
+    return _parseExpression(0) -> evaluate(context);
 }
 
-double Common::AlgebraicExpressionParser::evaluate(const std::unordered_map<std::string, double> variableValuePairs) const
+std::unique_ptr<Common::AlgebraicExpression> AlgebraicExpressionParser::_parsePrimary()
 {
-    int i = 0;
-    std::vector<double> runningComponents;
-    std::vector<std::string> runningOperators;
-    while(i < m_strsplit.get().size())
+    const std::string token = *m_itToken;
+    const unsigned int lowestPrecedenceValue = m_opGrammar -> lowestPriority();
+    if (m_opGrammar -> isLeftBracket(token))
     {
+        ++m_itToken;
+        std::unique_ptr<Common::AlgebraicExpression> expr = _parseExpression(lowestPrecedenceValue);
+
+        if (m_opGrammar -> isRightBracket(*m_itToken))
+            throw std::runtime_error("Common::AlgebraicExpressionParser::_parsePrimary : parsing error. Unmatched brackets.");
+
+        ++m_itToken;
+
+        return expr;
+    }
+    else if (!m_opGrammar -> isOperator(token))
+    {
+        ++m_itToken;
         char* pEnd;
-        const double component = std::strtod(m_strsplit.get().at(i).c_str(), &pEnd) == 0 ?
-                                 variableValuePairs.at(m_strsplit.get().at(i)) : std::strtod(m_strsplit.get().at(i).c_str(), &pEnd);//variableValuePairs.at(m_strsplit.get().at(i));
-        if (i < m_strsplit.getOrderedOperators().size() and m_strsplit.getOrderedOperators().at(i) == "^")
+        const bool isNumeric = std::strtod(token.c_str(), &pEnd) != 0 or
+                (std::strtod(token.c_str(), &pEnd) == 0 and *pEnd == '\0');
+        if (isNumeric)
         {
-            const double base = component;
-            double exponent = 1;
-
-            while (i < m_strsplit.getOrderedOperators().size() and m_strsplit.getOrderedOperators().at(i) == "^")
-            {
-                exponent *= variableValuePairs.at(m_strsplit.get().at(i + 1));
-                ++i;
-            }
-            runningComponents.push_back(pow(base, exponent));
+            const double constant = std::strtod(token.c_str(), &pEnd);
+            return std::make_unique<Common::ConstantExpression>(Common::ConstantExpression(constant));
         }
         else
-            runningComponents.push_back(component);
-
-        if (i < m_strsplit.getOrderedOperators().size())
-            runningOperators.push_back(m_strsplit.getOrderedOperators().at(i));
-        ++i;
+            return std::make_unique<Common::VariableExpression>(Common::VariableExpression(token));
     }
-
-    i = 0;
-    std::vector<double> _runningComponents;
-    std::vector<std::string> _runningOperators;
-    while(i < runningComponents.size())
-    {
-        const double component = runningComponents.at(i);
-        if (i < runningOperators.size() and (runningOperators.at(i) == "*" or runningOperators.at(i) == "/"))
-        {
-            double factor = component;
-
-            while (i < runningOperators.size() and (runningOperators.at(i) == "*" or runningOperators.at(i) == "/"))
-            {
-                if (runningOperators.at(i) == "*")
-                    factor *= runningComponents.at(i + 1);
-                if (runningOperators.at(i) == "/")
-                    factor /= runningComponents.at(i + 1);
-                ++i;
-            }
-            _runningComponents.push_back(factor);
-        }
-        else
-            _runningComponents.push_back(component);
-
-        if (i < runningOperators.size())
-            _runningOperators.push_back(runningOperators.at(i));
-        ++i;
-    }
-
-    i = 0;
-    runningComponents = _runningComponents;
-    runningOperators = _runningOperators;
-    double value = runningComponents.at(i);
-    while(i < runningOperators.size())
-    {
-        if (runningOperators.at(i) == "+")
-            value += runningComponents.at(i + 1);
-        if (runningOperators.at(i) == "-")
-            value -= runningComponents.at(i + 1);
-        ++i;
-    }
-    return value;
+    else
+        throw std::runtime_error("Common::AlgebraicExpressionParser::_parsePrimary : "
+                                 "parsing error. Value found where operator was expected");
 }
 
+std::unique_ptr<Common::AlgebraicExpression> AlgebraicExpressionParser::_parseExpression(unsigned int lowestPrecedenceValue)
+{
+    std::unique_ptr<Common::AlgebraicExpression> lhsExpr = _parsePrimary();
+    while (true)
+    {
+        if (m_itToken == m_itExprEnd or
+            !m_opGrammar -> isOperator(*m_itToken) or
+            m_opGrammar -> priority(*m_itToken) < lowestPrecedenceValue)
+            break;
+
+        const std::string opSymbol = *m_itToken;
+        const unsigned int opPrecedence = m_opGrammar -> priority(opSymbol);
+        const unsigned int nextLowestPrecedenceValue = m_opGrammar -> isLeftAssociative(opSymbol) ? opPrecedence + 1 : opPrecedence;
+
+        ++m_itToken;
+        std::unique_ptr<Common::AlgebraicExpression> rhsExpr = _parseExpression(nextLowestPrecedenceValue);
+        lhsExpr = Global::AlgebraicExpressionFactoryMapping::instance() -> getFactory(opSymbol) -> create(*lhsExpr, *rhsExpr);
+    }
+
+    return lhsExpr;
+}
 
 //Global function tools definitions
 double Common::getTenorInYearsFromVariableName(const std::string& variableName)

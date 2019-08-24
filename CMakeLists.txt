@@ -6,7 +6,7 @@ set(CMAKE_CXX_STANDARD 14)
 find_package(Boost 1.62.0 REQUIRED COMPONENTS unit_test_framework date_time)
 
 SET(GCC_COVERAGE_COMPILE_FLAGS "-fprofile-arcs -ftest-coverage")
-SET(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} ${GCC_COVERAGE_COMPILE_FLAGS}")
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${GCC_COVERAGE_COMPILE_FLAGS} -ggdb")
 
 include_directories(${Boost_INCLUDE_DIR})
 
@@ -27,6 +27,6 @@ add_library(wildcatSTKCore Common/Config/ConfigVariable.cpp Common/Config/Config
         Common/Config/CurveModelDef.cpp Common/Config/CurveModelDef.h Common/Math/Interpolation/Interpolator.cpp Common/Math/Interpolation/Interpolator.h
         Common/Math/Interpolation/LinearInterpolator.cpp Common/Math/Interpolation/LinearInterpolator.h
         Common/Math/Interpolation/NaturalCubicSplineInterpolator.cpp Common/Math/Interpolation/NaturalCubicSplineInterpolator.h
-        Common/Types/ConfigMap.cpp Common/Types/ConfigMap.h)
+        Common/Types/ConfigMap.cpp Common/Types/ConfigMap.h Common/Utils/General/AlgebraicExpressionInterpreter.cpp Common/Utils/General/AlgebraicExpressionInterpreter.h Global/Symbols/AlgebraicOperatorSymbols.cpp Global/Symbols/AlgebraicOperatorSymbols.h)
 
 target_link_libraries(wildcatSTKCore ${Boost_LIBRARIES})

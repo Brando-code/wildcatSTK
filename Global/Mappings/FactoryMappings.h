@@ -9,6 +9,7 @@
 #include <string>
 #include <map>
 
+
 namespace Math
 {
     class RelativeModelFactory;
@@ -18,6 +19,7 @@ namespace Math
 namespace Common
 {
     class TransformationTypeFactory;
+    class BinaryOperatorExpressionFactory;
 }
 
 namespace Global
@@ -26,14 +28,13 @@ namespace Global
     {
     public:
         static TransformationTypeCodeFactoryMapping *instance();
-        std::map<std::string, Common::TransformationTypeFactory *> getMapping() const;
-        Common::TransformationTypeFactory *getFactory(const std::string &transformationTypeCode) const;
+        const Common::TransformationTypeFactory *getFactory(const std::string &transformationTypeCode) const;
 
     private:
         TransformationTypeCodeFactoryMapping();
 
         static TransformationTypeCodeFactoryMapping *m_instance;
-        std::map<std::string, Common::TransformationTypeFactory *> m_mapping;
+        std::map<std::string, const Common::TransformationTypeFactory *> m_mapping;
     };
 
 
@@ -41,14 +42,13 @@ namespace Global
     {
     public:
         static RelativeModelFactoryMapping *instance();
-        std::map<std::string, Math::RelativeModelFactory *> getMapping() const;
-        Math::RelativeModelFactory *getFactory(const std::string &relativeModelSubTypeName) const;
+        const Math::RelativeModelFactory *getFactory(const std::string &relativeModelSubTypeName) const;
 
     private:
         RelativeModelFactoryMapping();
 
         static RelativeModelFactoryMapping *m_instance;
-        std::map<std::string, Math::RelativeModelFactory *> m_mapping;
+        std::map<std::string, const Math::RelativeModelFactory *> m_mapping;
     };
 
 
@@ -56,14 +56,27 @@ namespace Global
     {
     public:
         static InterpolatorFactoryMapping* instance();
-        std::map<std::string, Math::InterpolatorFactory *> getMapping() const;
-        Math::InterpolatorFactory *getFactory(const std::string &interpolationMethodName) const;
+        const Math::InterpolatorFactory *getFactory(const std::string &interpolationMethodName) const;
 
     private:
         InterpolatorFactoryMapping();
 
         static InterpolatorFactoryMapping* m_instance;
-        std::map<std::string, Math::InterpolatorFactory *> m_mapping;
+        std::map<std::string, const Math::InterpolatorFactory *> m_mapping;
+    };
+
+
+    class AlgebraicExpressionFactoryMapping
+    {
+    public:
+        static AlgebraicExpressionFactoryMapping* instance();
+        const Common::BinaryOperatorExpressionFactory* getFactory(const std::string& symbol) const;
+
+    private:
+        AlgebraicExpressionFactoryMapping();
+
+        static AlgebraicExpressionFactoryMapping* m_instance;
+        std::map<std::string, const Common::BinaryOperatorExpressionFactory *> m_mapping;
     };
 }
 
