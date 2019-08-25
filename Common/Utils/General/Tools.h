@@ -52,20 +52,16 @@ namespace Common
     class StringSplitAlgebraicDecorator : public StringSplitDecorator
     {
     public:
-        StringSplitAlgebraicDecorator();
         StringSplitAlgebraicDecorator(const Common::OperatorsGrammar& opGrammar);
         void splitExpression(const std::string &string);
-        std::vector<std::string> getOrderedOperators() const;
         std::vector<std::string> getTokenized() const;
 
         void setOperatorsGrammar(const Common::OperatorsGrammar& opGrammar);
 
     private:
         void split(const std::string &string, const std::string &pattern) final;
-        bool _isValidExpression() const;
-        std::vector<std::string> m_operators;
-        std::vector<std::string> m_tokenized;
 
+        std::vector<std::string> m_tokenized;
         std::unique_ptr<Common::OperatorsGrammar> m_opGrammar;
     };
 
@@ -78,11 +74,13 @@ namespace Common
         void setExpression(const std::string& other);
         void setOperatorGrammar(const Common::OperatorsGrammar& other);
 
+        std::vector<std::string> getExpressionVariables() const;
+
         double evaluate(const Common::AlgebraicExpressionContext& context);
 
     private:
         std::unique_ptr<Common::OperatorsGrammar> m_opGrammar;
-        std::string m_expr;
+        std::vector<std::string> m_tokenized, m_variables;
 
         std::vector<std::string>::const_iterator m_itToken;
         std::vector<std::string>::const_iterator m_itExprEnd;
@@ -94,6 +92,7 @@ namespace Common
 
     //Tool global functions : may be re-organized into separate header or class at a later stage
     double getTenorInYearsFromVariableName(const std::string& variableName);
+    bool isNumeric(const std::string& string);
 }
 
 #endif //WILDCATSTKCORE_TOOLS_H

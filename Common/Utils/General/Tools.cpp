@@ -62,8 +62,6 @@ unsigned int StringSplitConfigVariableDecorator::getLagDependency() const
         return static_cast<unsigned int>(lagDependency);
 }
 
-StringSplitAlgebraicDecorator::StringSplitAlgebraicDecorator() : m_opGrammar(nullptr)
-{}
 
 StringSplitAlgebraicDecorator::StringSplitAlgebraicDecorator(const Common::OperatorsGrammar &opGrammar) : m_opGrammar(opGrammar.clone())
 {}
@@ -72,7 +70,7 @@ void StringSplitAlgebraicDecorator::split(const std::string &string, const std::
 {
     const std::string cleanString = boost::algorithm::erase_all_copy(string, " ");
 
-    std::vector<std::string> comp, tok, op;
+    std::vector<std::string> comp, tok;
     std::string token;
     for (unsigned int i = 0; i < cleanString.length(); ++i)
     {
@@ -86,7 +84,6 @@ void StringSplitAlgebraicDecorator::split(const std::string &string, const std::
             }
             tok.push_back(thisToken);
             token.clear();
-            op.push_back(thisToken);
         }
         else
             token += thisToken;
@@ -99,26 +96,13 @@ void StringSplitAlgebraicDecorator::split(const std::string &string, const std::
     }
 
     m_components = std::move(comp);
-    m_operators = std::move(op);
     m_tokenized = std::move(tok);
 }
 
 void StringSplitAlgebraicDecorator::splitExpression(const std::string &string)
 {
-    if (!m_opGrammar)
-        throw std::runtime_error("StringSplitAlgebraicDecorator::split : undefined grammar for algebraic operators.");
-
     const std::string pattern = m_opGrammar -> getCharOperators();
     split(string, pattern);
-
-    if (!_isValidExpression())
-        throw std::runtime_error("Common::StringSplitAlgebraicDecorator::splitExpression : invalid string expression " +
-        string);
-}
-
-std::vector<std::string> StringSplitAlgebraicDecorator::getOrderedOperators() const
-{
-    return m_operators;
 }
 
 std::vector<std::string> StringSplitAlgebraicDecorator::getTokenized() const
@@ -131,57 +115,30 @@ void StringSplitAlgebraicDecorator::setOperatorsGrammar(const Common::OperatorsG
     m_opGrammar = opGrammar.clone();
 }
 
-bool StringSplitAlgebraicDecorator::_isValidExpression() const
-{
-    if (m_opGrammar -> isOperator(m_tokenized.front()) or m_opGrammar -> isOperator(m_tokenized.back()))
-        return false;
-
-    std::vector<std::string>::const_iterator it = m_tokenized.begin();
-    std::vector<std::string>::const_reverse_iterator jt = m_tokenized.rbegin();
-    for (; it != m_tokenized.end() - 1; ++it)
-    {
-        const std::string thisToken = *it;
-        const std::string nextToken = *(it + 1);
-        if (m_opGrammar -> isOperator(thisToken) and m_opGrammar -> isOperator(nextToken))
-            return false;
-        if (m_opGrammar -> isLeftBracket(thisToken) and m_opGrammar -> isOperator(nextToken))
-            return false;
-        if (m_opGrammar -> isRightBracket(thisToken) and !m_opGrammar -> isOperator(nextToken))
-            return false;
-        if (!m_opGrammar -> isOperator(thisToken) and m_opGrammar -> isLeftBracket(nextToken))
-            return false;
-        if (m_opGrammar -> isOperator(thisToken) and m_opGrammar -> isRightBracket(nextToken))
-            return false;
-        if (m_opGrammar -> isRightBracket(thisToken) and jt == m_tokenized.rbegin())
-            return false;
-
-        if (m_opGrammar -> isLeftBracket(thisToken))
-        {
-            while (true)
-            {
-                if (m_opGrammar -> isRightBracket(*jt))
-                {
-                    ++jt;
-                    break;
-                }
-                if (it >= jt.base() - 1)
-                    return false;
-                ++jt;
-            }
-        }
-    }
-    return true;
-}
-
 
 //AlgebraicExpressionParser implementation
 AlgebraicExpressionParser::AlgebraicExpressionParser(const std::string &expression, const Common::OperatorsGrammar &opGrammar) :
-    m_opGrammar(opGrammar.clone()), m_expr(expression)
-{}
+    m_opGrammar(opGrammar.clone())
+{
+    Common::StringSplitAlgebraicDecorator strspl(*m_opGrammar);
+    strspl.splitExpression(expression);
+    m_tokenized = strspl.getTokenized();
+
+    for (const auto& it: strspl.get())
+        if (!Common::isNumeric(it))
+            m_variables.push_back(it);
+}
 
 void AlgebraicExpressionParser::setExpression(const std::string &other)
 {
-    m_expr = other;
+    Common::StringSplitAlgebraicDecorator strspl(*m_opGrammar);
+    strspl.splitExpression(other);
+    m_tokenized = strspl.getTokenized();
+
+    m_variables.clear();
+    for (const auto& it: strspl.get())
+        if (!Common::isNumeric(it))
+            m_variables.push_back(it);
 }
 
 void AlgebraicExpressionParser::setOperatorGrammar(const Common::OperatorsGrammar &other)
@@ -189,18 +146,21 @@ void AlgebraicExpressionParser::setOperatorGrammar(const Common::OperatorsGramma
     m_opGrammar = other.clone();
 }
 
+std::vector<std::string> AlgebraicExpressionParser::getExpressionVariables() const
+{
+    return m_variables;
+}
+
 double AlgebraicExpressionParser::evaluate(const Common::AlgebraicExpressionContext &context)
 {
-    Common::StringSplitAlgebraicDecorator strspl(*m_opGrammar);
-    strspl.splitExpression(m_expr);
-    const std::vector<std::string> tokenized = strspl.getTokenized();
-    m_itToken = tokenized.begin();
-    m_itExprEnd = tokenized.end();
+    m_itToken = m_tokenized.begin();
+    m_itExprEnd = m_tokenized.end();
 
     //Using precedence climbing algorithm
     return _parseExpression(0) -> evaluate(context);
 }
 
+//Recursive-descent atomic element parsers i.e. variables, constants and parenthesised expressions
 std::unique_ptr<Common::AlgebraicExpression> AlgebraicExpressionParser::_parsePrimary()
 {
     const std::string token = *m_itToken;
@@ -211,7 +171,7 @@ std::unique_ptr<Common::AlgebraicExpression> AlgebraicExpressionParser::_parsePr
         std::unique_ptr<Common::AlgebraicExpression> expr = _parseExpression(lowestPrecedenceValue);
 
         if (m_opGrammar -> isRightBracket(*m_itToken))
-            throw std::runtime_error("Common::AlgebraicExpressionParser::_parsePrimary : parsing error. Unmatched brackets.");
+            throw std::runtime_error("Common::AlgebraicExpressionParser::_parsePrimary : parsing error. Mismatched brackets.");
 
         ++m_itToken;
 
@@ -221,9 +181,9 @@ std::unique_ptr<Common::AlgebraicExpression> AlgebraicExpressionParser::_parsePr
     {
         ++m_itToken;
         char* pEnd;
-        const bool isNumeric = std::strtod(token.c_str(), &pEnd) != 0 or
-                (std::strtod(token.c_str(), &pEnd) == 0 and *pEnd == '\0');
-        if (isNumeric)
+        //const bool isNumeric = std::strtod(token.c_str(), &pEnd) != 0 or
+        //        (std::strtod(token.c_str(), &pEnd) == 0 and *pEnd == '\0');
+        if (Common::isNumeric(token))
         {
             const double constant = std::strtod(token.c_str(), &pEnd);
             return std::make_unique<Common::ConstantExpression>(Common::ConstantExpression(constant));
@@ -233,9 +193,12 @@ std::unique_ptr<Common::AlgebraicExpression> AlgebraicExpressionParser::_parsePr
     }
     else
         throw std::runtime_error("Common::AlgebraicExpressionParser::_parsePrimary : "
-                                 "parsing error. Value found where operator was expected");
+                                 "parsing error. Operator found where value was expected");
+
+    //Only binary operators currently supported. Extend here for functions.
 }
 
+//Expression parser with precedence climbing logic
 std::unique_ptr<Common::AlgebraicExpression> AlgebraicExpressionParser::_parseExpression(unsigned int lowestPrecedenceValue)
 {
     std::unique_ptr<Common::AlgebraicExpression> lhsExpr = _parsePrimary();
@@ -282,4 +245,14 @@ double Common::getTenorInYearsFromVariableName(const std::string& variableName)
         default:
             throw std::runtime_error("CurveModelDef::_getTenorInYearsFromVariableName : unknown unit code " + std::string(1, unit));
     }
+}
+
+bool Common::isNumeric(const std::string &string)
+{
+    //True if std::strtod returns any value different from zero (EXIT_SUCCESS -> conversion)
+    //In case string == 0, std::strtod return value will be 0 despite EXIT_SUCCESS.
+    //Check that pEnd points to end-of-string character (no underflow) to ensure conversion was successful.
+    char *pEnd;
+    return std::strtod(string.c_str(), &pEnd) != 0 or
+           (std::strtod(string.c_str(), &pEnd) == 0 and *pEnd == '\0');
 }

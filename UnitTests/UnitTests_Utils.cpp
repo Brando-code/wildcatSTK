@@ -73,16 +73,14 @@ BOOST_AUTO_TEST_SUITE(Tools)
     BOOST_AUTO_TEST_CASE(StringSplitAlgebraic_happyPath)
     {
         std::string expression = "a + b * c / d ^ n + 2.5";
-        Common::StringSplitAlgebraicDecorator adc;
         Common::AlgebraicOperatorsGrammar grammar;
+        Common::StringSplitAlgebraicDecorator adc(grammar);
 
         adc.setOperatorsGrammar(grammar);
         adc.splitExpression(expression);
         const std::vector<std::string> expectedComponents = {"a", "b", "c", "d", "n", "2.5"};
-        const std::vector<std::string> expectedOperators = {"+", "*", "/", "^", "+"};
         const std::vector<std::string> expectedTokenized = {"a", "+", "b", "*", "c",  "/", "d", "^", "n", "+", "2.5" };
         BOOST_TEST(adc.get() == expectedComponents, tt::per_element());
-        BOOST_TEST(adc.getOrderedOperators() == expectedOperators, tt::per_element());
         BOOST_TEST(adc.getTokenized() == expectedTokenized, tt::per_element());
     }
 
@@ -94,47 +92,9 @@ BOOST_AUTO_TEST_SUITE(Tools)
 
         adc.splitExpression(expression);
         const std::vector<std::string> expectedComponents = {"a", "b", "c", "d", "n", "2.5"};
-        const std::vector<std::string> expectedOperators = {"+", "(", "*", "/", ")", "^", "+"};
         const std::vector<std::string> expectedTokenized = {"a", "+", "(", "b", "*", "c",  "/", "d", ")", "^", "n", "+", "2.5" };
         BOOST_TEST(adc.get() == expectedComponents, tt::per_element());
-        BOOST_TEST(adc.getOrderedOperators() == expectedOperators, tt::per_element());
         BOOST_TEST(adc.getTokenized() == expectedTokenized, tt::per_element());
-    }
-
-    BOOST_AUTO_TEST_CASE(StringSplitAlgebraic_invalid)
-    {
-        std::string expression = "+ a + b * * c / d ^ n +";
-        Common::AlgebraicOperatorsGrammar grammar;
-        Common::StringSplitAlgebraicDecorator adc(grammar);
-
-        BOOST_CHECK_THROW(adc.splitExpression(expression), std::runtime_error);
-    }
-
-    BOOST_AUTO_TEST_CASE(StringSplitAlgebraic_invalid_brackets)
-    {
-        std::string expression = "(a + b) * ( c / d ^ n +";
-        Common::AlgebraicOperatorsGrammar grammar;
-        Common::StringSplitAlgebraicDecorator adc(grammar);
-
-        BOOST_CHECK_THROW(adc.splitExpression(expression), std::runtime_error);
-    }
-
-    BOOST_AUTO_TEST_CASE(StringSplitAlgebraic_invalid_nested_brackets)
-    {
-        std::string expression = "(((a) + b) * ( c )/ d ^ n +";
-        Common::AlgebraicOperatorsGrammar grammar;
-        Common::StringSplitAlgebraicDecorator adc(grammar);
-
-        BOOST_CHECK_THROW(adc.splitExpression(expression), std::runtime_error);
-    }
-
-    BOOST_AUTO_TEST_CASE(StringSplitAlgebraic_invalid_bracket_operator)
-    {
-        std::string expression = "(a + b) c / d ^ n +";
-        Common::AlgebraicOperatorsGrammar grammar;
-        Common::StringSplitAlgebraicDecorator adc(grammar);;
-
-        BOOST_CHECK_THROW(adc.splitExpression(expression), std::runtime_error);
     }
 
     BOOST_AUTO_TEST_CASE(EvaluateStringExpression_happyPath)
@@ -142,6 +102,9 @@ BOOST_AUTO_TEST_SUITE(Tools)
         std::string expression = "a + b * c / d ^ n + 2.5";
         Common::AlgebraicOperatorsGrammar grammar;
         Common::AlgebraicExpressionParser aep(expression, grammar);
+
+        std::vector<std::string> expectedVariables = {"a", "b", "c", "d", "n"};
+        BOOST_TEST(aep.getExpressionVariables() == expectedVariables, tt::per_element());
 
         std::unordered_map<std::string, double> kvp = {{"a", 1}, {"b", 2}, {"c", 6},
                                                        {"d", 2}, {"n", 3}};
@@ -170,6 +133,45 @@ BOOST_AUTO_TEST_SUITE(Tools)
     BOOST_AUTO_TEST_CASE(EvaluateStringExpression_invalid)
     {
         std::string expression = "*a + b * + c / d ^ n + 2.5";
+        Common::AlgebraicOperatorsGrammar grammar;
+        Common::AlgebraicExpressionParser aep(expression, grammar);
+
+        std::unordered_map<std::string, double> kvp = {{"a", 1}, {"b", 2}, {"c", 6},
+                                                       {"d", 2}, {"n", 3}};
+        Common::AlgebraicExpressionContext ctx(kvp);
+
+        BOOST_CHECK_THROW(aep.evaluate(ctx), std::runtime_error);
+    }
+
+    BOOST_AUTO_TEST_CASE(EvaluateStringExpression_mismatched_brackets)
+    {
+        std::string expression = "(a + b) * ( c / d ^ n";
+        Common::AlgebraicOperatorsGrammar grammar;
+        Common::AlgebraicExpressionParser aep(expression, grammar);
+
+        std::unordered_map<std::string, double> kvp = {{"a", 1}, {"b", 2}, {"c", 6},
+                                                       {"d", 2}, {"n", 3}};
+        Common::AlgebraicExpressionContext ctx(kvp);
+
+        BOOST_CHECK_THROW(aep.evaluate(ctx), std::runtime_error);
+    }
+
+    BOOST_AUTO_TEST_CASE(EvaluateStringExpression_mismatched_nested_brackets)
+    {
+        std::string expression = "(a + b)) * ( c / d ^ n)";
+        Common::AlgebraicOperatorsGrammar grammar;
+        Common::AlgebraicExpressionParser aep(expression, grammar);
+
+        std::unordered_map<std::string, double> kvp = {{"a", 1}, {"b", 2}, {"c", 6},
+                                                       {"d", 2}, {"n", 3}};
+        Common::AlgebraicExpressionContext ctx(kvp);
+
+        BOOST_CHECK_THROW(aep.evaluate(ctx), std::runtime_error);
+    }
+
+    BOOST_AUTO_TEST_CASE(EvaluateStringExpression_invalid_operator)
+    {
+        std::string expression = "(a + b)( c / d ^ n)";
         Common::AlgebraicOperatorsGrammar grammar;
         Common::AlgebraicExpressionParser aep(expression, grammar);
 
