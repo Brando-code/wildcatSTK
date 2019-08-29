@@ -31,7 +31,7 @@ void StringSplitConfigVariableDecorator::split(const std::string& string, const 
         throw std::runtime_error("E: .ConfigVariable::ConfigVariable : unexpected number of components for raw "
                                  "config variable " + string);
     else
-        m_components = std::move(rv);
+        m_components = rv;
 }
 
 std::vector<std::string> StringSplitDecorator::get() const
@@ -95,8 +95,8 @@ void StringSplitAlgebraicDecorator::split(const std::string &string, const std::
         }
     }
 
-    m_components = std::move(comp);
-    m_tokenized = std::move(tok);
+    m_components = comp;
+    m_tokenized = tok;
 }
 
 void StringSplitAlgebraicDecorator::splitExpression(const std::string &string)
@@ -181,8 +181,6 @@ std::unique_ptr<Common::AlgebraicExpression> AlgebraicExpressionParser::_parsePr
     {
         ++m_itToken;
         char* pEnd;
-        //const bool isNumeric = std::strtod(token.c_str(), &pEnd) != 0 or
-        //        (std::strtod(token.c_str(), &pEnd) == 0 and *pEnd == '\0');
         if (Common::isNumeric(token))
         {
             const double constant = std::strtod(token.c_str(), &pEnd);

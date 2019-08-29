@@ -27,6 +27,7 @@ namespace utf = boost::unit_test;
 
 const std::string inputRelativePath = "../UnitTests/Inputs/";
 
+
 BOOST_AUTO_TEST_SUITE(ConfigVariable)
     const double tol = 1e-10;
     struct Fixture
