@@ -31,6 +31,7 @@ namespace Common
         double getValue(unsigned int index) const;
         double getValue(const boost::gregorian::date &date) const;
         unsigned int getIndex(const boost::gregorian::date &date) const;
+        size_t length() const;
 
         void pushBack(const boost::gregorian::date &date, double value);
 

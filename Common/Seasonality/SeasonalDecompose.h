@@ -58,6 +58,16 @@ namespace Common
         Common::TimeSeries _deTrend(const Common::TimeSeries& ts) final;
         Common::TimeSeries _extractNoise(const Common::TimeSeries& ts) final;
     };
+
+    class SeasonalDecomposeConvolutionMultiplicative : public SeasonalDecomposeConvolution
+    {
+    public:
+        SeasonalDecomposeConvolutionMultiplicative(unsigned int period);
+
+    protected:
+        Common::TimeSeries _deTrend(const Common::TimeSeries& ts) final;
+        Common::TimeSeries _extractNoise(const Common::TimeSeries& ts) final;
+    };
 }
 
 

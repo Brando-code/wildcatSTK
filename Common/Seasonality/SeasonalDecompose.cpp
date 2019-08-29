@@ -46,7 +46,7 @@ void Common::SeasonalDecomposeConvolution::_extractTrend(const Common::TimeSerie
     Math::CenteredMovingAverage cma(m_period);
 
     std::vector<double> trend;
-    for (unsigned int i = 0; i < ts.getValues().size(); ++i)
+    for (unsigned int i = 0; i < ts.length(); ++i)
     {
         cma.add(ts.getValue(i));
         if (!std::isnan(cma.get()))
@@ -86,7 +86,7 @@ void Common::SeasonalDecomposeConvolution::_extractSeason(const Common::TimeSeri
     std::vector<double> accumulators(m_period, 0);
     std::vector<unsigned long> counters(m_period, 0);
 
-    for (unsigned long i = 0; i < ts.getValues().size(); ++i)
+    for (unsigned long i = 0; i < ts.length(); ++i)
     {
         unsigned long index;
         if (i < m_period)
@@ -99,7 +99,7 @@ void Common::SeasonalDecomposeConvolution::_extractSeason(const Common::TimeSeri
     }
 
     std::vector<double> seasonality(ts.getValues().size());
-    for (unsigned long i = 0; i < ts.getValues().size(); ++i)
+    for (unsigned long i = 0; i < ts.length(); ++i)
     {
         unsigned long index;
         if (i < m_period)
@@ -130,4 +130,18 @@ Common::TimeSeries Common::SeasonalDecomposeConvolutionAdditive::_deTrend(const 
 Common::TimeSeries Common::SeasonalDecomposeConvolutionAdditive::_extractNoise(const Common::TimeSeries &ts)
 {
     return ts - getTrend() - getSeason();
+}
+
+Common::SeasonalDecomposeConvolutionMultiplicative::SeasonalDecomposeConvolutionMultiplicative(unsigned int period) :
+    Common::SeasonalDecomposeConvolution(period)
+{}
+
+Common::TimeSeries Common::SeasonalDecomposeConvolutionMultiplicative::_deTrend(const Common::TimeSeries &ts)
+{
+    return ts / getTrend();
+}
+
+Common::TimeSeries Common::SeasonalDecomposeConvolutionMultiplicative::_extractNoise(const Common::TimeSeries &ts)
+{
+    return ts / getTrend() / getSeason();
 }

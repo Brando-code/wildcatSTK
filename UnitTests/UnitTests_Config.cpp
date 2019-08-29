@@ -289,7 +289,7 @@ BOOST_AUTO_TEST_SUITE(ConfigModelSpec)
         fx.f_startDate = boost::gregorian::date(2007, 03, 31);
         Common::ConfigModelSpecRegression spec(fx.f_dv, fx.f_ivs, fx.f_modelSubType, fx.f_startDate);
 
-        boost::gregorian::date expectedFirstValidRegressionDate(2007, 9, 30);
+        boost::gregorian::date expectedFirstValidRegressionDate(2008, 6, 30);
 
         Common::DataSet ds;
         loadDataSet(inputRelativePath + inputDataSetFileName, ds);
@@ -297,7 +297,7 @@ BOOST_AUTO_TEST_SUITE(ConfigModelSpec)
         BOOST_CHECK_EQUAL(spec.getFirstValidRegressionDate(ds), expectedFirstValidRegressionDate);
         BOOST_CHECK_EQUAL(spec.getModelSubType(), fx.f_modelSubType);
 
-        fx.f_startDate = boost::gregorian::date(2008, 3, 31);
+        fx.f_startDate = boost::gregorian::date(2008, 9, 30);
         Common::ConfigModelSpecRegression anotherSpec(fx.f_dv, fx.f_ivs, fx.f_modelSubType, fx.f_startDate);
         BOOST_CHECK_EQUAL(anotherSpec.getFirstValidRegressionDate(ds), fx.f_startDate);
     }

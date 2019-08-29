@@ -28,8 +28,8 @@ namespace Common
                         std::vector<Common::ConfigVariable> independentVariables);
 
         Common::ConfigVariable getDependentVariable() const;
-
         std::vector<Common::ConfigVariable> getIndependentVariables() const;
+        unsigned int getMaxLag() const;
 
         virtual void calibrate(const Common::DataSet &ds) = 0;
         virtual double predict(const Common::DataSet &ds, unsigned int index) const = 0;
@@ -107,6 +107,10 @@ namespace Common
         std::unique_ptr<Math::RegressionModel> m_modelPtr;
         boost::gregorian::date m_startDate;
         std::string m_modelSubType;
+
+        std::vector<double> _getTransformedValues(const Common::TimeSeries& ts,
+                const boost::gregorian::date& firstDate,
+                const Common::ConfigVariable& variable) const;
     };
 
 }

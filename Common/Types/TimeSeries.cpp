@@ -68,6 +68,11 @@ unsigned int TimeSeries::getIndex(const boost::gregorian::date& date) const
     throw std::out_of_range("E: TimeSeries::getValue : date " + boost::gregorian::to_simple_string(date) + "is not in range.");
 }
 
+size_t TimeSeries::length() const
+{
+    return m_data.size();
+}
+
 void TimeSeries::pushBack(const boost::gregorian::date &date, double value)
 {
     m_data.push_back(value);
