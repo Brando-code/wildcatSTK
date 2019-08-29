@@ -126,6 +126,34 @@ BOOST_AUTO_TEST_SUITE(ConvolutionFilters)
         BOOST_TEST(sdca.getNoise().getDates() == ts.getDates(), tt::per_element());
     }
 
+    BOOST_AUTO_TEST_CASE(Season_multiplicative_happyPath, *utf::tolerance(1e-6))
+    {
+        const unsigned int period = 4;
+        Common::SeasonalDecomposeConvolutionMultiplicative sdcm(period);
+
+        Common::DataSet data;
+        loadDataSet(inputRelativePath + fileName, data);
+
+        const std::string name = "OV_UK_VISITORS_NSA";
+        const Common::TimeSeries ts = data.getTimeSeries(name);
+
+        sdcm.decompose(ts);
+        const std::string expectedTrendFileName = "Conv_filter_mult_td_happyPath_expected.txt";
+        const std::string expectedSeasonFileName = "Conv_filter_mult_seas_happyPath_expected.txt";
+        std::vector<double> expectedTrend, expectedSeason;
+
+        std::ifstream in; in.open(expectedOutputRelativePath + expectedTrendFileName);
+        readArray(expectedTrend, in, true);
+        in.close();
+        in.open(expectedOutputRelativePath + expectedSeasonFileName);
+        readArray(expectedSeason, in, true);
+
+        BOOST_TEST(sdcm.getTrend().getValues() == expectedTrend, tt::per_element());
+        BOOST_TEST(sdcm.getSeason().getValues() == expectedSeason, tt::per_element());
+        BOOST_TEST((sdcm.getTrend() * sdcm.getSeason() *
+                sdcm.getNoise()).getValues() == ts.getValues(), tt::per_element());
+    }
+
 BOOST_AUTO_TEST_SUITE_END()
 
 

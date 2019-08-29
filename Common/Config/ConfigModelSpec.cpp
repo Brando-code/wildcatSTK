@@ -269,7 +269,7 @@ void Common::ConfigModelSpecRegression::calibrate(const Common::DataSet &ds)
         const std::vector<double> idVariableTransformedValues =
                 _getTransformedValues(ds.getTimeSeries(m_idVariables.at(i).getBasename()), firstValidDate, m_idVariables.at(i));
 
-        const unsigned int idVariableFirstIndex = ds.getTimeSeries(m_idVariables.at(i).getBasename()).getIndex(firstValidDate);
+        //const unsigned int idVariableFirstIndex = ds.getTimeSeries(m_idVariables.at(i).getBasename()).getIndex(firstValidDate);
         for (unsigned long j = 0; j < nRows; ++j)
         {
             //fill in matrix with values

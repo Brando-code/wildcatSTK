@@ -167,7 +167,26 @@ BOOST_AUTO_TEST_SUITE(ConfigVariable)
         BOOST_CHECK_EQUAL(fx.getTimeSeries().getIndex(inRangeDate), expectedIndex);
         BOOST_CHECK_EQUAL(fx.getTimeSeries().getValue(inRangeDate), fx.getTimeSeries().getValue(expectedIndex));
         BOOST_CHECK_THROW(fx.getTimeSeries().getIndex(outRangeDate), std::out_of_range);
+        BOOST_CHECK_THROW(fx.getTimeSeries().getValue(outRangeDate), std::out_of_range);
     }
+
+    BOOST_AUTO_TEST_CASE(TimeSeries_excep)
+    {
+        Common::TimeSeries ts;
+        BOOST_CHECK_THROW(ts.set("bar", {1.0, 3.5}, {boost::gregorian::date(2017, 03, 31)}), std::runtime_error);
+        BOOST_CHECK_THROW(Common::TimeSeries other("foo", {1.0, 3.5}, {boost::gregorian::date(2017, 03, 31)}), std::runtime_error);
+
+        const Fixture fx;
+        ts = fx.getTimeSeries();
+        ts.pushBack(boost::gregorian::date(2000, 6, 30), 234);
+
+        BOOST_CHECK(ts != fx.getTimeSeries());
+        BOOST_CHECK_THROW(ts + fx.getTimeSeries(), std::runtime_error);
+        BOOST_CHECK_THROW(ts - fx.getTimeSeries(), std::runtime_error);
+        BOOST_CHECK_THROW(ts * fx.getTimeSeries(), std::runtime_error);
+        BOOST_CHECK_THROW(ts / fx.getTimeSeries(), std::runtime_error);
+    }
+
 BOOST_AUTO_TEST_SUITE_END()
 
 
