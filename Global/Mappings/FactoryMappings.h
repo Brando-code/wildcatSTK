@@ -8,6 +8,7 @@
 
 #include <string>
 #include <map>
+#include "../../Common/Seasonality/SeasonalDecompose.h"
 
 
 namespace Math
@@ -20,6 +21,7 @@ namespace Common
 {
     class TransformationTypeFactory;
     class BinaryOperatorExpressionFactory;
+    class SeasonalDecomposeFactory;
 }
 
 namespace Global
@@ -77,6 +79,20 @@ namespace Global
 
         static AlgebraicExpressionFactoryMapping* m_instance;
         std::map<std::string, const Common::BinaryOperatorExpressionFactory *> m_mapping;
+    };
+
+
+    class SeasonalDecomposeFactoryMapping
+    {
+    public:
+        static SeasonalDecomposeFactoryMapping* instance();
+        const Common::SeasonalDecomposeFactory* getFactory(const std::string& decompositionType) const;
+
+    private:
+        SeasonalDecomposeFactoryMapping();
+
+        static SeasonalDecomposeFactoryMapping* g_instance;
+        std::map<std::string, const Common::SeasonalDecomposeFactory *> m_mapping;
     };
 }
 

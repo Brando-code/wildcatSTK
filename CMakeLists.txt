@@ -11,7 +11,7 @@ SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${GCC_COVERAGE_COMPILE_FLAGS} -ggdb")
 include_directories(${Boost_INCLUDE_DIR})
 
 add_executable(UTests UnitTests/UnitTests_Config.cpp UnitTests/UnitTests_Utils.cpp UnitTests/UnitTests_Math.cpp
-        UnitTests/Utils.h UnitTests/UnitTests_Seasonality.cpp)
+        UnitTests/Utils.h UnitTests/UnitTests_Seasonality.cpp UnitTests/UnitTests_Auxiliary.cpp)
 
 target_include_directories(UTests PRIVATE ${BOOST_INCLUDE_DIRS})
 

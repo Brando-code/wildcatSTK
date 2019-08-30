@@ -11,6 +11,7 @@
 namespace Common
 {
     class DataSet;
+    class SeasonalDecompose;
 
     class FormulaVariable
     {
@@ -28,6 +29,17 @@ namespace Common
 
     private:
         mutable Common::AlgebraicExpressionParser m_parser;
+    };
+
+    class FormulaVariableFunctionalDeSeason : public FormulaVariable
+    {
+    public:
+        FormulaVariableFunctionalDeSeason(const std::string& variableName, const std::string& decompositionType, unsigned int period);
+        double evaluate(const Common::DataSet& ds, const boost::gregorian::date& date) const final;
+
+    private:
+        std::string m_variable;
+        std::unique_ptr<Common::SeasonalDecompose> m_decompPtr;
     };
 
 }

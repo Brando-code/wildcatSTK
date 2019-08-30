@@ -122,6 +122,11 @@ Common::SeasonalDecomposeConvolutionAdditive::SeasonalDecomposeConvolutionAdditi
     SeasonalDecomposeConvolution(period)
 {}
 
+std::unique_ptr<Common::SeasonalDecompose> Common::SeasonalDecomposeConvolutionAdditive::clone() const
+{
+    return std::make_unique<Common::SeasonalDecomposeConvolutionAdditive>(*this);
+}
+
 Common::TimeSeries Common::SeasonalDecomposeConvolutionAdditive::_deTrend(const Common::TimeSeries &ts)
 {
     return ts - getTrend();
@@ -136,6 +141,11 @@ Common::SeasonalDecomposeConvolutionMultiplicative::SeasonalDecomposeConvolution
     Common::SeasonalDecomposeConvolution(period)
 {}
 
+std::unique_ptr<Common::SeasonalDecompose> Common::SeasonalDecomposeConvolutionMultiplicative::clone() const
+{
+    return std::make_unique<Common::SeasonalDecomposeConvolutionMultiplicative>(*this);
+}
+
 Common::TimeSeries Common::SeasonalDecomposeConvolutionMultiplicative::_deTrend(const Common::TimeSeries &ts)
 {
     return ts / getTrend();
@@ -144,4 +154,14 @@ Common::TimeSeries Common::SeasonalDecomposeConvolutionMultiplicative::_deTrend(
 Common::TimeSeries Common::SeasonalDecomposeConvolutionMultiplicative::_extractNoise(const Common::TimeSeries &ts)
 {
     return ts / getTrend() / getSeason();
+}
+
+std::unique_ptr<Common::SeasonalDecompose> Common::SeasonalDecomposeConvolutionAdditiveFactory::create(unsigned int period) const
+{
+    return std::make_unique<Common::SeasonalDecomposeConvolutionAdditive>(Common::SeasonalDecomposeConvolutionAdditive(period));
+}
+
+std::unique_ptr<Common::SeasonalDecompose> Common::SeasonalDecomposeConvolutionMultiplicativeFactory::create(unsigned int period) const
+{
+    return std::make_unique<Common::SeasonalDecomposeConvolutionMultiplicative>(Common::SeasonalDecomposeConvolutionMultiplicative(period));
 }

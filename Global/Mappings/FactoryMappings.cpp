@@ -62,7 +62,7 @@ const Math::RelativeModelFactory* RelativeModelFactoryMapping::getFactory(const 
     if (m_mapping.find(relativeModelSubTypeName) != m_mapping.end())
         return m_mapping.at(relativeModelSubTypeName);
     else
-        throw std::out_of_range("E: Global::RelativeModelFactoryMapping::getFactory : unknown transformation code " +
+        throw std::out_of_range("E: Global::RelativeModelFactoryMapping::getFactory : unknown model sub-type name " +
                                 relativeModelSubTypeName);
 }
 
@@ -89,7 +89,7 @@ const Math::InterpolatorFactory* InterpolatorFactoryMapping::getFactory(const st
     if (m_mapping.find(interpolationMethodName) != m_mapping.end())
         return m_mapping.at(interpolationMethodName);
     else
-        throw std::out_of_range("E: Global::InterpolatorFactoryMapping::getFactory : unknown transformation code " +
+        throw std::out_of_range("E: Global::InterpolatorFactoryMapping::getFactory : unknown interpolation method name " +
         interpolationMethodName);
 }
 
@@ -119,6 +119,32 @@ const Common::BinaryOperatorExpressionFactory* AlgebraicExpressionFactoryMapping
     if (m_mapping.find(symbol) != m_mapping.end())
         return m_mapping.at(symbol);
     else
-        throw std::out_of_range("E: Global::AlgebraicExpressionFactoryMapping::getFactory : unknown transformation code " +
+        throw std::out_of_range("E: Global::AlgebraicExpressionFactoryMapping::getFactory : unknown algebraic symbol " +
                                         symbol);
+}
+
+SeasonalDecomposeFactoryMapping* SeasonalDecomposeFactoryMapping::g_instance = nullptr;
+
+SeasonalDecomposeFactoryMapping::SeasonalDecomposeFactoryMapping()
+{
+    const std::vector<std::string> allowedDecompositionTypes = {"additive", "multiplicative"};
+    m_mapping.emplace(allowedDecompositionTypes[0], new Common::SeasonalDecomposeConvolutionAdditiveFactory());
+    m_mapping.emplace(allowedDecompositionTypes[1], new Common::SeasonalDecomposeConvolutionMultiplicativeFactory());
+}
+
+SeasonalDecomposeFactoryMapping* SeasonalDecomposeFactoryMapping::instance()
+{
+    if (!g_instance)
+        g_instance = new SeasonalDecomposeFactoryMapping();
+
+    return g_instance;
+}
+
+const Common::SeasonalDecomposeFactory* SeasonalDecomposeFactoryMapping::getFactory(const std::string &decompositionType) const
+{
+    if (m_mapping.find(decompositionType) != m_mapping.end())
+        return m_mapping.at(decompositionType);
+    else
+        throw std::out_of_range("Global::SeasonalDecomposeFactoryMapping : :getFactory : unknown seasonal decomposition type " +
+        decompositionType);
 }
