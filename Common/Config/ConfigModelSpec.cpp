@@ -262,7 +262,7 @@ void Common::ConfigModelSpecRegression::calibrate(const Common::DataSet &ds)
     //const unsigned long nRows = ds.getTimeSeries(m_dVariable.getBasename()).getDates().size() - dVariableFirstIndex;
     const unsigned long nRows = dVariableValuesForRegression.size();
     const unsigned long nCols = m_idVariables.size();
-    boost::numeric::ublas::matrix<double> idVariableValuesForRegression(nRows, nCols);
+    boost::numeric::ublas::matrix<double> idVariableValuesForRegression(nRows, nCols + 1, 1);
 
     for (unsigned long i = 0; i < nCols; ++i)
     {
@@ -289,12 +289,12 @@ double Common::ConfigModelSpecRegression::predict(const Common::DataSet &ds, uns
     if (m_coeff.empty())
         throw std::out_of_range("E: ConfigModelSpecRegression::predict : projections cannot be generated from un-calibrated models.");
 
-    const double intercept = m_coeff[0];
+    const double intercept = m_coeff.back();
     double dTransformedVariable = 0;
     for (unsigned int i = 0; i < m_idVariables.size(); ++i)
     {
         const Common::TimeSeries ts = ds.getTimeSeries(m_idVariables.at(i).getBasename());
-        dTransformedVariable += m_coeff.at(i + 1) * m_idVariables.at(i).getTransformedValue(ts, index);
+        dTransformedVariable += m_coeff.at(i) * m_idVariables.at(i).getTransformedValue(ts, index);
     }
 
     dTransformedVariable += intercept;

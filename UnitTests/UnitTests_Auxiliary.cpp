@@ -62,6 +62,7 @@ BOOST_AUTO_TEST_SUITE(FormulaVariable)
         boost::gregorian::date d(2017, 3, 31);
         double expectedDeSeasonedValue = (sdcd.getTrend() + sdcd.getNoise()).getValue(d);
         BOOST_CHECK_EQUAL(fvfd.evaluate(ds, d), expectedDeSeasonedValue);
+        BOOST_CHECK_EQUAL(fvfd.getLastSeasonalCycle(ds).size(), period);
 
         decompositionType = "multiplicative";
         variable = "OV_UK_VISITORS_NSA";

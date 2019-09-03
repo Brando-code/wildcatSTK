@@ -27,6 +27,8 @@ namespace Common
         FormulaVariableAlgebraic(const std::string& expression, const Common::OperatorsGrammar& grammar);
         double evaluate(const Common::DataSet& ds, const boost::gregorian::date& date) const final;
 
+        void set(const std::string& expression, const Common::OperatorsGrammar& grammar);
+
     private:
         mutable Common::AlgebraicExpressionParser m_parser;
     };
@@ -36,10 +38,16 @@ namespace Common
     public:
         FormulaVariableFunctionalDeSeason(const std::string& variableName, const std::string& decompositionType, unsigned int period);
         double evaluate(const Common::DataSet& ds, const boost::gregorian::date& date) const final;
+        std::vector<double> getLastSeasonalCycle(const Common::DataSet &ds) const;
+
+        void set(const std::string& variableName, const std::string& decompositionType, unsigned int period);
 
     private:
         std::string m_variable;
         std::unique_ptr<Common::SeasonalDecompose> m_decompPtr;
+        mutable bool m_isDecomposed;
+
+        void _decompose(const Common::DataSet& ds) const;
     };
 
 }

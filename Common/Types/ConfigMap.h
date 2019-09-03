@@ -62,6 +62,7 @@ namespace Common
                 m_configMap.at(key) = value.clone();
             }
         }
+
         void removeConfigItem(const std::string &key)
         {
             m_configMap.erase(key);
@@ -90,7 +91,8 @@ namespace Common
             {
                 for (const auto &it: other.m_configMap)
                 {
-                    if (m_configMap.find(it.first) != m_configMap.end() and *m_configMap.at(it.first) == *other.m_configMap.at(it.first))
+                    if (m_configMap.find(it.first) != m_configMap.end() and
+                    *m_configMap.at(it.first) == *other.m_configMap.at(it.first))
                         continue;
                     else
                     {

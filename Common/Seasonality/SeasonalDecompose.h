@@ -14,13 +14,14 @@ namespace Common
     class SeasonalDecompose
     {
     public:
+        SeasonalDecompose(unsigned int period);
         virtual void decompose(const Common::TimeSeries &ts) = 0;
 
         virtual Common::TimeSeries getTrend() const = 0;
-
         virtual Common::TimeSeries getSeason() const = 0;
-
         virtual Common::TimeSeries getNoise() const = 0;
+
+        unsigned int getPeriod() const;
 
         virtual std::unique_ptr<Common::SeasonalDecompose> clone() const = 0;
 
@@ -28,6 +29,9 @@ namespace Common
 
     protected:
         static const std::string trendNamePostfix, seasonNamePostfix, noiseNamePostfix;
+
+    private:
+        const unsigned int m_period;
     };
 
     class SeasonalDecomposeConvolution : public SeasonalDecompose
@@ -38,26 +42,21 @@ namespace Common
         void decompose(const Common::TimeSeries &ts) final;
 
         Common::TimeSeries getTrend() const final;
-
         Common::TimeSeries getSeason() const final;
-
         Common::TimeSeries getNoise() const final;
 
         std::unique_ptr<Common::SeasonalDecompose> clone() const = 0;
 
     protected:
         void _extractTrend(const Common::TimeSeries &ts);
-
         void _extractSeason(const Common::TimeSeries &ts);
-        //unsigned int _getPeriod() const;
 
         virtual Common::TimeSeries _deTrend(const Common::TimeSeries &ts) = 0;
-
         virtual Common::TimeSeries _extractNoise(const Common::TimeSeries &ts) = 0;
 
     private:
         Common::TimeSeries m_trend, m_season, m_noise;
-        const unsigned int m_period;
+        //const unsigned int m_period;
     };
 
     class SeasonalDecomposeConvolutionAdditive : public SeasonalDecomposeConvolution
@@ -69,7 +68,6 @@ namespace Common
 
     protected:
         Common::TimeSeries _deTrend(const Common::TimeSeries &ts) final;
-
         Common::TimeSeries _extractNoise(const Common::TimeSeries &ts) final;
     };
 
@@ -82,7 +80,6 @@ namespace Common
 
     protected:
         Common::TimeSeries _deTrend(const Common::TimeSeries &ts) final;
-
         Common::TimeSeries _extractNoise(const Common::TimeSeries &ts) final;
     };
 

@@ -9,7 +9,17 @@ const std::string Common::SeasonalDecompose::trendNamePostfix = "_TD";
 const std::string Common::SeasonalDecompose::seasonNamePostfix = "_SEAS";
 const std::string Common::SeasonalDecompose::noiseNamePostfix = "_NO";
 
-Common::SeasonalDecomposeConvolution::SeasonalDecomposeConvolution(unsigned int period) : m_period(period)
+Common::SeasonalDecompose::SeasonalDecompose(unsigned int period) : m_period(period)
+{
+
+}
+
+unsigned int Common::SeasonalDecompose::getPeriod() const
+{
+    return m_period;
+}
+
+Common::SeasonalDecomposeConvolution::SeasonalDecomposeConvolution(unsigned int period) : SeasonalDecompose(period)
 {}
 
 Common::TimeSeries Common::SeasonalDecomposeConvolution::getTrend() const
@@ -29,7 +39,7 @@ Common::TimeSeries Common::SeasonalDecomposeConvolution::getNoise() const
 
 void Common::SeasonalDecomposeConvolution::decompose(const Common::TimeSeries &ts)
 {
-    if (ts.getValues().size() < 2 * m_period)
+    if (ts.getValues().size() < 2 * getPeriod())
         throw std::runtime_error("Common::SeasonalDecomposeConvolution::decompose : data should cover at least two seasonal cycles");
 
     _extractTrend(ts);
@@ -43,7 +53,7 @@ void Common::SeasonalDecomposeConvolution::decompose(const Common::TimeSeries &t
 void Common::SeasonalDecomposeConvolution::_extractTrend(const Common::TimeSeries &ts)
 {
     const unsigned int dim = 2;
-    Math::CenteredMovingAverage cma(m_period);
+    Math::CenteredMovingAverage cma(getPeriod());
 
     std::vector<double> trend;
     for (unsigned int i = 0; i < ts.length(); ++i)
@@ -54,7 +64,7 @@ void Common::SeasonalDecomposeConvolution::_extractTrend(const Common::TimeSerie
     }
 
     Math::MultivariateStat head(dim), tail(dim);
-    for (unsigned int i = 0; i < m_period; ++i)
+    for (unsigned int i = 0; i < getPeriod(); ++i)
     {
         head.add({static_cast<double>(i), trend.at(i)});
         tail.add({static_cast<double>(trend.size() - i - 1), trend.at(trend.size() - i - 1)});
@@ -65,7 +75,7 @@ void Common::SeasonalDecomposeConvolution::_extractTrend(const Common::TimeSerie
     const double alphaHatHead = head.mean().at(1) - betaHatHead * head.mean().at(0);
     const double alphaHatTail = tail.mean().at(1) - betaHatTail * tail.mean().at(0);
 
-    const int extrapWindowSize = m_period / 2;
+    const int extrapWindowSize = getPeriod() / 2;
     std::vector<double> headExtrapolation;
     for (int i = 0; i < extrapWindowSize; ++i)
     {
@@ -83,16 +93,16 @@ void Common::SeasonalDecomposeConvolution::_extractTrend(const Common::TimeSerie
 void Common::SeasonalDecomposeConvolution::_extractSeason(const Common::TimeSeries &ts)
 {
     //implement by using mod arithmetic
-    std::vector<double> accumulators(m_period, 0);
-    std::vector<unsigned long> counters(m_period, 0);
+    std::vector<double> accumulators(getPeriod(), 0);
+    std::vector<unsigned long> counters(getPeriod(), 0);
 
     for (unsigned long i = 0; i < ts.length(); ++i)
     {
         unsigned long index;
-        if (i < m_period)
+        if (i < getPeriod())
             index = i;
         else
-            index = i % m_period;
+            index = i % getPeriod();
 
         accumulators.at(index) += ts.getValue(i);
         counters.at(index) += 1;
@@ -102,10 +112,10 @@ void Common::SeasonalDecomposeConvolution::_extractSeason(const Common::TimeSeri
     for (unsigned long i = 0; i < ts.length(); ++i)
     {
         unsigned long index;
-        if (i < m_period)
+        if (i < getPeriod())
             index = i;
         else
-            index = i % m_period;
+            index = i % getPeriod();
 
         seasonality.at(i) = accumulators.at(index) / counters.at(index);
     }
