@@ -8,6 +8,8 @@
 #include "../../Common/Math/Relative/RelativeModel.h"
 #include "../../Common/Math/Interpolation/Interpolator.h"
 #include "../../Common/Utils/General/AlgebraicExpressionInterpreter.h"
+#include "../../Common/Seasonality/SeasonalDecompose.h"
+#include "../../Common/Auxiliary/FormulaVariable.h"
 
 using namespace Global;
 
@@ -145,6 +147,32 @@ const Common::SeasonalDecomposeFactory* SeasonalDecomposeFactoryMapping::getFact
     if (m_mapping.find(decompositionType) != m_mapping.end())
         return m_mapping.at(decompositionType);
     else
-        throw std::out_of_range("Global::SeasonalDecomposeFactoryMapping : :getFactory : unknown seasonal decomposition type " +
+        throw std::out_of_range("Global::SeasonalDecomposeFactoryMapping::getFactory : unknown seasonal decomposition type " +
         decompositionType);
+}
+
+RestoreSeasonFactoryMapping* RestoreSeasonFactoryMapping::g_instance = nullptr;
+
+RestoreSeasonFactoryMapping::RestoreSeasonFactoryMapping()
+{
+    const std::vector<std::string> allowedDecompositionTypes = {"additive", "multiplicative"};
+    m_mapping.emplace(allowedDecompositionTypes[0], new Common::RestoreSeasonAdditiveFactory());
+    m_mapping.emplace(allowedDecompositionTypes[1], new Common::RestoreSeasonMultiplicativeFactory());
+}
+
+RestoreSeasonFactoryMapping* RestoreSeasonFactoryMapping::instance()
+{
+    if (!g_instance)
+        g_instance = new RestoreSeasonFactoryMapping();
+
+    return g_instance;
+}
+
+const Common::RestoreSeasonFactory* RestoreSeasonFactoryMapping::getFactory(const std::string &decompositionType) const
+{
+    if (m_mapping.find(decompositionType) != m_mapping.end())
+        return m_mapping.at(decompositionType);
+    else
+        throw std::out_of_range("Global::RestoreSeasonFactoryMapping::getFactory : unknown seasonal decomposition type " +
+                                decompositionType);
 }

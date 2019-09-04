@@ -69,3 +69,59 @@ void Common::FormulaVariableFunctionalDeSeason::set(const std::string &variableN
     m_decompPtr = Global::SeasonalDecomposeFactoryMapping::instance() -> getFactory(decompositionType) -> create(period);
     m_isDecomposed = false;
 }
+
+Common::FormulaVariableFunctionalRestoreSeason::FormulaVariableFunctionalRestoreSeason(const std::string &variableName,
+                                                                                       const std::string &decompositionType,
+                                                                                       const std::vector<double> &lastSeasonalCycle) :
+    m_variable(variableName),
+    m_restorePtr(Global::RestoreSeasonFactoryMapping::instance() -> getFactory(decompositionType) -> create()),
+    m_lastSeasonalCycle(lastSeasonalCycle)
+{
+
+}
+
+void Common::FormulaVariableFunctionalRestoreSeason::set(const std::string &variableName, const std::string &decompositionType,
+                                                         const std::vector<double> &lastSeasonalCycle)
+{
+    m_variable = variableName;
+    m_restorePtr = Global::RestoreSeasonFactoryMapping::instance() -> getFactory(decompositionType) -> create();
+    m_lastSeasonalCycle = lastSeasonalCycle;
+}
+
+double Common::FormulaVariableFunctionalRestoreSeason::evaluate(const Common::DataSet &ds, const boost::gregorian::date &date) const
+{
+    const unsigned long index = ds.getTimeSeries(m_variable).getIndex(date);
+    const double trendValue = ds.getValue(m_variable, date);
+
+    double seasonalValue;
+    if (index < m_lastSeasonalCycle.size())
+        seasonalValue = m_lastSeasonalCycle.at(index);
+    else
+        seasonalValue = m_lastSeasonalCycle.at(index % m_lastSeasonalCycle.size());
+
+    return m_restorePtr -> restore(trendValue, seasonalValue);
+}
+
+double Common::RestoreSeasonAdditive::restore(double deSeasonedValue, double seasonalValue) const
+{
+    return deSeasonedValue + seasonalValue;
+}
+
+double Common::RestoreSeasonMultiplicative::restore(double deSeasonedValue, double seasonalValue) const
+{
+    return deSeasonedValue * seasonalValue;
+}
+
+
+// Factory classes
+std::unique_ptr<Common::RestoreSeason> Common::RestoreSeasonAdditiveFactory::create() const
+{
+    using namespace Common;
+    return std::make_unique<RestoreSeasonAdditive>(RestoreSeasonAdditive());
+}
+
+std::unique_ptr<Common::RestoreSeason> Common::RestoreSeasonMultiplicativeFactory::create() const
+{
+    using namespace Common;
+    return std::make_unique<RestoreSeasonMultiplicative>(RestoreSeasonMultiplicative());
+}
