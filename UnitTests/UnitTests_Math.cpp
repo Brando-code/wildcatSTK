@@ -421,7 +421,7 @@ BOOST_AUTO_TEST_SUITE(MLRegression)
 
     BOOST_AUTO_TEST_CASE(MoorePenroseRegressionTest, *utf::tolerance(1e-4))
     {
-        const std::string fileName = "DataSet_clean.json";
+        const std::string fileName = "sample_dataSet_clean.json";
         const std::vector<std::string> varNames = {"HANG_SENG", "DOW_JONES", "US_GDP_SAAR"}; // First element is my Y, ever!
         FxInputData fx(varNames, fileName);
         std::vector<double> vectorY = fx.m_dVar;
@@ -449,7 +449,7 @@ BOOST_AUTO_TEST_SUITE(MLRegression)
 
     BOOST_AUTO_TEST_CASE(CholeskyRegressionTest, *utf::tolerance(1e-4))
     {
-        const std::string fileName = "DataSet_clean.json";
+        const std::string fileName = "sample_dataSet_clean.json";
         const std::vector<std::string> varNames = {"HANG_SENG", "DOW_JONES", "US_GDP_SAAR"}; // First element is my Y, ever!
         FxInputData fx(varNames, fileName);
         std::vector<double> vectorY = fx.m_dVar;

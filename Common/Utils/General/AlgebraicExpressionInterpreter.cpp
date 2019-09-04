@@ -2,6 +2,7 @@
 // Created by Alberto Campi on 2019-08-21.
 //
 
+#include <cmath>
 #include "AlgebraicExpressionInterpreter.h"
 #include "../../../Global/Symbols/AlgebraicOperatorSymbols.h"
 
