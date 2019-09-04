@@ -7,7 +7,7 @@
 
 #include <string>
 #include <memory>
-#include "../Concepts.h"
+#include "../../Concepts/Concepts.h"
 #include "../Utils/General/Tools.h"
 
 namespace Common

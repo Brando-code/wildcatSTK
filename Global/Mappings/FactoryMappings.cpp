@@ -3,7 +3,11 @@
 //
 
 #include "FactoryMappings.h"
+#include "../Symbols/AlgebraicOperatorSymbols.h"
 #include "../../Common/Config/ConfigVariable.h"
+#include "../../Common/Math/Relative/RelativeModel.h"
+#include "../../Common/Math/Interpolation/Interpolator.h"
+#include "../../Common/Utils/General/AlgebraicExpressionInterpreter.h"
 
 using namespace Global;
 
@@ -26,17 +30,12 @@ TransformationTypeCodeFactoryMapping* TransformationTypeCodeFactoryMapping::inst
     return m_instance;
 }
 
-std::map<std::string, Common::TransformationTypeFactory *> TransformationTypeCodeFactoryMapping::getMapping() const
-{
-    return m_mapping;
-}
-
-Common::TransformationTypeFactory* TransformationTypeCodeFactoryMapping::getFactory(const std::string &transformationTypeCode) const
+const Common::TransformationTypeFactory* TransformationTypeCodeFactoryMapping::getFactory(const std::string &transformationTypeCode) const
 {
     if (m_mapping.find(transformationTypeCode) != m_mapping.end())
         return m_mapping.at(transformationTypeCode);
     else
-        throw std::out_of_range("E: Common::TransformationTypeFactory::getFactory : unknown transformation code " +
+        throw std::out_of_range("E: Global::TransformationTypeFactory::getFactory : unknown transformation code " +
                                 transformationTypeCode);
 }
 
@@ -58,16 +57,94 @@ RelativeModelFactoryMapping* RelativeModelFactoryMapping::instance()
     return m_instance;
 }
 
-std::map<std::string, Math::RelativeModelFactory *> RelativeModelFactoryMapping::getMapping() const
-{
-    return m_mapping;
-}
-
-Math::RelativeModelFactory* RelativeModelFactoryMapping::getFactory(const std::string &relativeModelSubTypeName) const
+const Math::RelativeModelFactory* RelativeModelFactoryMapping::getFactory(const std::string &relativeModelSubTypeName) const
 {
     if (m_mapping.find(relativeModelSubTypeName) != m_mapping.end())
         return m_mapping.at(relativeModelSubTypeName);
     else
-        throw std::out_of_range("E: Common::TransformationTypeFactory::getFactory : unknown transformation code " +
+        throw std::out_of_range("E: Global::RelativeModelFactoryMapping::getFactory : unknown model sub-type name " +
                                 relativeModelSubTypeName);
+}
+
+
+InterpolatorFactoryMapping* InterpolatorFactoryMapping::m_instance = nullptr;
+
+InterpolatorFactoryMapping::InterpolatorFactoryMapping()
+{
+    const std::vector<std::string> allowedInterpolationMethods = {"linear", "cubic"};
+    m_mapping.emplace(allowedInterpolationMethods[0], new Math::LinearInterpolatorFactory());
+    m_mapping.emplace(allowedInterpolationMethods[1], new Math::NaturalCubicSplineInterpolatorFactory());
+}
+
+InterpolatorFactoryMapping* InterpolatorFactoryMapping::instance()
+{
+    if (!m_instance)
+        m_instance = new InterpolatorFactoryMapping();
+
+    return m_instance;
+}
+
+const Math::InterpolatorFactory* InterpolatorFactoryMapping::getFactory(const std::string &interpolationMethodName) const
+{
+    if (m_mapping.find(interpolationMethodName) != m_mapping.end())
+        return m_mapping.at(interpolationMethodName);
+    else
+        throw std::out_of_range("E: Global::InterpolatorFactoryMapping::getFactory : unknown interpolation method name " +
+        interpolationMethodName);
+}
+
+
+AlgebraicExpressionFactoryMapping* AlgebraicExpressionFactoryMapping::m_instance = nullptr;
+
+AlgebraicExpressionFactoryMapping::AlgebraicExpressionFactoryMapping()
+{
+    AlgebraicOperatorSymbols* ptr = AlgebraicOperatorSymbols::instance();
+    m_mapping.emplace(ptr -> getAdditionSymbol(), new Common::AdditionExpressionFactory());
+    m_mapping.emplace(ptr -> getSubstractionSymbol(), new Common::SubstractionExpressionFactory());
+    m_mapping.emplace(ptr -> getMultiplicationSymbol(), new Common::MultiplicationExpressionFactory());
+    m_mapping.emplace(ptr -> getDivisionSymbol(), new Common::DivisionExpressionFactory());
+    m_mapping.emplace(ptr -> getExponentiationSymbol(), new Common::ExponentiationExpressionFactory());
+}
+
+AlgebraicExpressionFactoryMapping* AlgebraicExpressionFactoryMapping::instance()
+{
+    if (!m_instance)
+        m_instance = new AlgebraicExpressionFactoryMapping();
+
+    return m_instance;
+}
+
+const Common::BinaryOperatorExpressionFactory* AlgebraicExpressionFactoryMapping::getFactory(const std::string &symbol) const
+{
+    if (m_mapping.find(symbol) != m_mapping.end())
+        return m_mapping.at(symbol);
+    else
+        throw std::out_of_range("E: Global::AlgebraicExpressionFactoryMapping::getFactory : unknown algebraic symbol " +
+                                        symbol);
+}
+
+SeasonalDecomposeFactoryMapping* SeasonalDecomposeFactoryMapping::g_instance = nullptr;
+
+SeasonalDecomposeFactoryMapping::SeasonalDecomposeFactoryMapping()
+{
+    const std::vector<std::string> allowedDecompositionTypes = {"additive", "multiplicative"};
+    m_mapping.emplace(allowedDecompositionTypes[0], new Common::SeasonalDecomposeConvolutionAdditiveFactory());
+    m_mapping.emplace(allowedDecompositionTypes[1], new Common::SeasonalDecomposeConvolutionMultiplicativeFactory());
+}
+
+SeasonalDecomposeFactoryMapping* SeasonalDecomposeFactoryMapping::instance()
+{
+    if (!g_instance)
+        g_instance = new SeasonalDecomposeFactoryMapping();
+
+    return g_instance;
+}
+
+const Common::SeasonalDecomposeFactory* SeasonalDecomposeFactoryMapping::getFactory(const std::string &decompositionType) const
+{
+    if (m_mapping.find(decompositionType) != m_mapping.end())
+        return m_mapping.at(decompositionType);
+    else
+        throw std::out_of_range("Global::SeasonalDecomposeFactoryMapping : :getFactory : unknown seasonal decomposition type " +
+        decompositionType);
 }

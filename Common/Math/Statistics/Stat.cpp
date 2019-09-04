@@ -149,3 +149,53 @@ double Math::UnivariateStat::stdError() const
 {
     return stdDev()/sqrt(static_cast<double>(m_counter));
 }
+
+Math::MovingAverage::MovingAverage(unsigned int window) : m_size(window), m_buffer(), m_accum(0) {}
+
+void Math::MovingAverage::add(double x)
+{
+    if (m_buffer.size() >= m_size)
+    {
+        m_accum -= m_buffer.front();
+        m_buffer.pop();
+    }
+
+    m_buffer.push(x);
+    m_accum += x;
+}
+
+double Math::MovingAverage::get() const
+{
+    if (m_buffer.size() < m_size)
+        return std::nan("");
+    else
+        return m_accum/m_buffer.size();
+}
+
+double Math::MovingAverage::_getAccumulator() const
+{
+    return m_accum;
+}
+
+unsigned int Math::MovingAverage::_getWindowSize() const
+{
+    return m_size;
+}
+
+Math::CenteredMovingAverage::CenteredMovingAverage(unsigned int window) : MovingAverage(window), m_leftAccumCtr(-1)
+{}
+
+void Math::CenteredMovingAverage::add(double x)
+{
+    m_leftAccum = _getAccumulator();
+    ++m_leftAccumCtr;
+    Math::MovingAverage::add(x);
+}
+
+double Math::CenteredMovingAverage::get() const
+{
+    if (m_leftAccumCtr < _getWindowSize())
+        return std::nan("");
+    else
+        return 1./(_getWindowSize() * 2) * (_getAccumulator() + m_leftAccum);
+}

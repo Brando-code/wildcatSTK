@@ -71,3 +71,10 @@ std::unique_ptr<Math::Interpolator> Math::LinearInterpolator::clone() const
 {
     return std::make_unique<Math::LinearInterpolator>(*this);
 }
+
+
+//LinearInterpolatorFactory method
+std::unique_ptr<Math::Interpolator> Math::LinearInterpolatorFactory::create() const
+{
+    return std::make_unique<Math::LinearInterpolator>(Math::LinearInterpolator());
+}

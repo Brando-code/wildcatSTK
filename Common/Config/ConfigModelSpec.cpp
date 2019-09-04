@@ -10,6 +10,7 @@
 #include "../Types/TimeSeries.h"
 #include "../../Global/Mappings/FactoryMappings.h"
 #include "../Math/MLRegression/RegressionModel.h"
+#include "../Math/Relative/RelativeModel.h"
 
 
 //ConfigModelSpec class implementation
@@ -32,6 +33,16 @@ Common::ConfigVariable Common::ConfigModelSpec::getDependentVariable() const
 std::vector<Common::ConfigVariable> Common::ConfigModelSpec::getIndependentVariables() const
 {
     return m_idVariables;
+}
+
+unsigned int Common::ConfigModelSpec::getMaxLag() const
+{
+    unsigned int maxLag = m_dVariable.getLagDependency();
+    for (const auto& configVariable: m_idVariables)
+        if (configVariable.getLagDependency() > maxLag)
+            maxLag = configVariable.getLagDependency();
+
+    return maxLag;
 }
 
 bool Common::ConfigModelSpec::_equal(const Common::ConfigModelSpec &other) const
@@ -150,7 +161,7 @@ Common::ConfigModelSpecRegression::ConfigModelSpecRegression(const Common::Confi
         ConfigModelSpec(dependentVariable, independentVariables),
         m_startDate(regressionStartDate),
         m_modelSubType(modelSubType),
-        //Should be replace by factory when more regression models are available
+        //Should be replaced by factory when more regression models are available
         m_modelPtr(std::make_unique<Math::RegressionModelOLS>(Math::RegressionModelOLS())) {}
 
 Common::ConfigModelSpecRegression::ConfigModelSpecRegression(const Common::ConfigModelSpecRegression &other) :
@@ -201,10 +212,10 @@ std::string Common::ConfigModelSpecRegression::getModelSubType() const
 boost::gregorian::date Common::ConfigModelSpecRegression::getFirstValidRegressionDate(const Common::DataSet &ds) const
 {
     //get first valid date across drivers and dependent variable
-    boost::gregorian::date firstValidDate = ds.getTimeSeries(m_dVariable.getBasename()).getDates().at(0);
+    boost::gregorian::date firstValidDate = ds.getTimeSeries(m_dVariable.getBasename()).getDates().at(getMaxLag() + 1);
     for (const auto& it: m_idVariables)
     {
-        boost::gregorian::date thisDriverFirstAvailableDate = ds.getTimeSeries(it.getBasename()).getDates().at(0);
+        boost::gregorian::date thisDriverFirstAvailableDate = ds.getTimeSeries(it.getBasename()).getDates().at(getMaxLag() + 1);
         if (thisDriverFirstAvailableDate > firstValidDate)
             firstValidDate = thisDriverFirstAvailableDate;
     }
@@ -220,29 +231,50 @@ boost::gregorian::date Common::ConfigModelSpecRegression::getFirstValidRegressio
     return firstValidDate;
 }
 
+std::vector<double> Common::ConfigModelSpecRegression::_getTransformedValues(const Common::TimeSeries &ts,
+                                                                             const boost::gregorian::date &firstDate,
+                                                                             const Common::ConfigVariable &variable) const
+{
+    const unsigned long firstIndex = ts.getIndex(firstDate);
+    std::vector<double> rvs;
+    for (unsigned long i = firstIndex; i < ts.length(); ++i)
+        rvs.push_back(variable.getTransformedValue(ts, i));
+
+    return rvs;
+}
+
 void Common::ConfigModelSpecRegression::calibrate(const Common::DataSet &ds)
 {
     //get first available date across drivers and dependent variable
     const boost::gregorian::date firstValidDate = getFirstValidRegressionDate(ds);
 
     //construct array of dependent variable values to be used by MLRegression
+    /*
     const unsigned long dVariableFirstIndex = ds.getTimeSeries(m_dVariable.getBasename()).getIndex(firstValidDate);
     std::vector<double>::const_iterator begin = ds.getTimeSeries(m_dVariable.getBasename()).getValues().begin() + dVariableFirstIndex;
     std::vector<double>::const_iterator end = ds.getTimeSeries(m_dVariable.getBasename()).getValues().end();
     const std::vector<double> dVariableValuesForRegression(begin, end);
+     */
+    const std::vector<double> dVariableValuesForRegression =
+            _getTransformedValues(ds.getTimeSeries(m_dVariable.getBasename()), firstValidDate, m_dVariable);
 
     //construct matrix of independent variable values to be used by MLRegression
-    const unsigned long nRows = ds.getTimeSeries(m_dVariable.getBasename()).getDates().size() - dVariableFirstIndex;
+    //const unsigned long nRows = ds.getTimeSeries(m_dVariable.getBasename()).getDates().size() - dVariableFirstIndex;
+    const unsigned long nRows = dVariableValuesForRegression.size();
     const unsigned long nCols = m_idVariables.size();
-    boost::numeric::ublas::matrix<double> idVariableValuesForRegression(nRows, nCols);
+    boost::numeric::ublas::matrix<double> idVariableValuesForRegression(nRows, nCols + 1, 1);
 
     for (unsigned long i = 0; i < nCols; ++i)
     {
-        const unsigned int idVariableFirstIndex = ds.getTimeSeries(m_idVariables.at(i).getBasename()).getIndex(firstValidDate);
+        const std::vector<double> idVariableTransformedValues =
+                _getTransformedValues(ds.getTimeSeries(m_idVariables.at(i).getBasename()), firstValidDate, m_idVariables.at(i));
+
+        //const unsigned int idVariableFirstIndex = ds.getTimeSeries(m_idVariables.at(i).getBasename()).getIndex(firstValidDate);
         for (unsigned long j = 0; j < nRows; ++j)
         {
             //fill in matrix with values
-            const double value = ds.getTimeSeries(m_idVariables.at(i).getBasename()).getValue(j + idVariableFirstIndex);
+            //const double value = ds.getTimeSeries(m_idVariables.at(i).getBasename()).getValue(j + idVariableFirstIndex);
+            const double value = idVariableTransformedValues.at(i);
             idVariableValuesForRegression(i, j) = value;
         }
     }
@@ -257,12 +289,12 @@ double Common::ConfigModelSpecRegression::predict(const Common::DataSet &ds, uns
     if (m_coeff.empty())
         throw std::out_of_range("E: ConfigModelSpecRegression::predict : projections cannot be generated from un-calibrated models.");
 
-    const double intercept = m_coeff[0];
+    const double intercept = m_coeff.back();
     double dTransformedVariable = 0;
     for (unsigned int i = 0; i < m_idVariables.size(); ++i)
     {
         const Common::TimeSeries ts = ds.getTimeSeries(m_idVariables.at(i).getBasename());
-        dTransformedVariable += m_coeff.at(i + 1) * m_idVariables.at(i).getTransformedValue(ts, index);
+        dTransformedVariable += m_coeff.at(i) * m_idVariables.at(i).getTransformedValue(ts, index);
     }
 
     dTransformedVariable += intercept;

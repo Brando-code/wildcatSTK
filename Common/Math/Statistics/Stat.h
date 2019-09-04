@@ -6,6 +6,7 @@
 #define WILDCATSTKCORE_STAT_H
 
 #include <vector>
+#include <queue>
 #include <boost/numeric/ublas/matrix.hpp>
 #include <boost/numeric/ublas/io.hpp>
 
@@ -33,7 +34,6 @@ namespace Math
         std::vector<double> m_sumOfRVs;
         boost::numeric::ublas::matrix<double> m_sumOfCrossProdRVs;
 
-        //void _checkCounter() const;
     };
 
 
@@ -54,8 +54,39 @@ namespace Math
         double m_sumOfRV;
         double m_sumOfSquaredRV;
 
-        //void _checkCounter() const;
     };
+
+    class MovingAverage
+    {
+    public:
+        MovingAverage(unsigned int window);
+
+        virtual void add(double x);
+        virtual double get() const;
+
+    private:
+        const unsigned int m_size;
+        double m_accum;
+        std::queue<double> m_buffer;
+
+    protected:
+        unsigned int _getWindowSize() const;
+        double _getAccumulator() const;
+    };
+
+    class CenteredMovingAverage : public MovingAverage
+    {
+    public:
+        CenteredMovingAverage(unsigned int window);
+
+        void add(double x) override;
+        double get() const override;
+
+    private:
+        double m_leftAccum;
+        int m_leftAccumCtr;
+    };
+
 
     void checkDivisionByZero(double denominator);
 }

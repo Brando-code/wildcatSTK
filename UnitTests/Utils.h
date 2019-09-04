@@ -9,6 +9,7 @@
 #include <fstream>
 #include <string>
 #include <iomanip>
+#include <vector>
 
 //Utility functions to support BOOST unit testing framework
 
@@ -21,6 +22,7 @@ std::istream &readMap(std::map<T, D> &outputMap, std::istream &rStream, bool hea
         std::getline(rStream, headerLine);
     }
 
+    outputMap.clear();
     while (true)
     {
         T tempKey;
@@ -34,16 +36,63 @@ std::istream &readMap(std::map<T, D> &outputMap, std::istream &rStream, bool hea
 
     return rStream;
 }
+
+template <typename T>
+std::istream &readArray(std::vector<T>& outputArray, std::istream& rStream, bool header)
+{
+    if (header)
+    {
+        std::string headerLine;
+        std::getline(rStream, headerLine);
+    }
+
+    outputArray.clear();
+    while (true)
+    {
+        T tempValue;
+        rStream >> tempValue;
+        outputArray.push_back(tempValue);
+
+        if (rStream.eof() or rStream.fail())
+            break;
+    }
+
+    return rStream;
+}
 /*
+template<class T>
+std::ostream &writeArray(const std::vector<T> &inputArray, std::ostream &wStream, int precision, bool header)
+{
+    if (header)
+        wStream << "Value" << std::endl;
+
+    for (auto it = inputArray.begin(); it != inputArray.end(); ++it)
+    {
+        wStream << std::fixed << std::setprecision(precision) << *it;
+
+        auto next = it + 1;
+        if (next != inputArray.end())
+            wStream << std::endl;
+    }
+
+    return wStream;
+}
+
 template<class T, class D>
 std::ostream &writeMap(const std::map<T, D> &inputMap, std::ostream &wStream, int precision, bool header)
 {
     if (header)
         wStream << "Key" << "\t" << "Value" << std::endl;
 
-    for (const auto &it : inputMap)
-        wStream << std::fixed << std::setprecision(precision) << it.first <<
-                "\t" << std::fixed << std::setprecision(precision) << it.second << std::endl;
+    for (auto it = inputMap.begin(); it != inputMap.end(); ++it)
+    {
+        wStream << std::fixed << std::setprecision(precision) << it -> first <<
+                "\t" << std::fixed << std::setprecision(precision) << it -> second;
+
+        auto next = it + 1;
+        if (next != inputMap.end())
+            wStream << std::endl;
+    }
 
     return wStream;
 }

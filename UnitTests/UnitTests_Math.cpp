@@ -12,6 +12,8 @@
 #include <cmath>
 #include <random>
 #include <bits/stdc++.h>
+#include <list>
+#include <iterator>
 #include "../Common/Math/Statistics/Stat.h"
 #include "../Common/Math/Relative/RelativeModel.h"
 #include "../Common/Math/MLRegression/RegressionModel.h"
@@ -150,9 +152,11 @@ BOOST_AUTO_TEST_SUITE(Interpolation)
         std::map<double, double> act = ncsi.interpolatePoints(f, queryPoints);
 
         const std::string expected = expectedOutputRelativePath + "Natural_cubic_spline_interpolation_expected.txt";
-        std::ifstream expectedIn(expected);
+        std::ifstream expectedIn;
+        expectedIn.open(expected);
         std::map<double, double> exp;
         readMap(exp, expectedIn, false);
+        expectedIn.close();
 
         //Extract values from map to perform element-wise comparison with tolerance decorator
         //IMPORTANT: tolerance would be ignored by BOOST_TEST as maps do not have overloads for order relationship operators
@@ -179,6 +183,79 @@ BOOST_AUTO_TEST_SUITE(Interpolation)
         //const double expectedInterpolate = -9./2.;
 
         BOOST_CHECK(lin.interpolatePoints(f, x) == expected);
+    }
+
+BOOST_AUTO_TEST_SUITE_END()
+
+
+BOOST_AUTO_TEST_SUITE(MovingAverage)
+    void loadData(std::vector<double>& data, const std::string& filePath, bool header)
+    {
+        std::ifstream in;
+        in.open(filePath);
+
+        if (!in.is_open())
+            throw std::runtime_error("MovingAverage : impossible to open file" + filePath);
+
+        readArray(data, in, header);
+        in.close();
+    }
+/*
+    void dropNaN(std::list<double>& dataWithNaNs, unsigned int chunkSize)
+    {
+        std::list<double>::iterator it, jt;
+        it = jt = dataWithNaNs.begin();
+        std::advance(jt, chunkSize);
+        dataWithNaNs.erase(it, jt);
+    }
+*/
+    BOOST_AUTO_TEST_CASE(MA_happyPath, *utf::tolerance(1e-3))
+    {
+        const std::string fileName = "MA_data_test.txt";
+        std::vector<double> data;
+        loadData(data, inputRelativePath + fileName, true);
+
+        const unsigned int windowSize = 4;
+        Math::MovingAverage ma(windowSize);
+
+        std::vector<double> maData;
+        for (const auto& value : data)
+        {
+            ma.add(value);
+            if (!std::isnan(ma.get()))
+                maData.push_back(ma.get());
+        }
+
+        const std::string expectedFileName = "MA_happyPath_expected.txt";
+        std::vector<double> expectedMAData;
+        loadData(expectedMAData, expectedOutputRelativePath + expectedFileName, true);
+
+        BOOST_TEST(maData == expectedMAData, tt::per_element());
+    }
+
+    BOOST_AUTO_TEST_CASE(CMA_happyPath, *utf::tolerance(1e-3))
+    {
+        const std::string fileName = "MA_data_test.txt";
+        std::vector<double> data;
+        loadData(data, inputRelativePath + fileName, true);
+
+        const unsigned int windowSize = 4;
+        Math::CenteredMovingAverage cma(windowSize);
+
+        std::vector<double> maData;
+        for (const auto& value : data)
+        {
+            cma.add(value);
+            if (!std::isnan(cma.get()))
+                maData.push_back(cma.get());
+            //std::cout << cma.get() << std::endl;
+        }
+
+        const std::string expectedFileName = "CMA_happyPath_expected.txt";
+        std::vector<double> expectedCMAData;
+        loadData(expectedCMAData, expectedOutputRelativePath + expectedFileName, true);
+
+        BOOST_TEST(maData == expectedCMAData, tt::per_element());
     }
 
 BOOST_AUTO_TEST_SUITE_END()

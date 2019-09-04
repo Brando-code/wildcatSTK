@@ -18,4 +18,16 @@ namespace Common
         Uncopyable &operator=(const Common::Uncopyable &other);
     };
 }
+
+namespace Math
+{
+    template <typename T, typename D>
+    class Functor
+    {
+    public:
+        virtual T operator()(const D& arg) const = 0;
+
+        virtual ~Functor() = default;
+    };
+}
 #endif //WILDCATSTKCORE_CONCEPTS_H

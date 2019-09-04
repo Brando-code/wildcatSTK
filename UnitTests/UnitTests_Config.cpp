@@ -10,19 +10,23 @@
 #include <boost/test/unit_test_suite.hpp>
 #include <iostream>
 #include <cmath>
+#include "Utils.h"
 #include "../Common/Config/ConfigVariable.h"
 #include "../Common/Config/ConfigModelSpec.h"
+#include "../Common/Config/CurveModelDef.h"
 #include "../Common/Types/TimeSeries.h"
 #include "../Common/Types/DataSet.h"
-#include "../Common/Types/ConfigModelSpecTable.h"
+#include "../Common/Types/ConfigMap.h"
 #include "../Common/Utils/IO/JSONParser.h"
 #include "../Common/Math/Relative/RelativeModel.h"
 #include "../Common/Math/MLRegression/RegressionModel.h"
+#include "../Common/Math/Interpolation/Interpolator.h"
 
 
 namespace utf = boost::unit_test;
 
 const std::string inputRelativePath = "../UnitTests/Inputs/";
+
 
 BOOST_AUTO_TEST_SUITE(ConfigVariable)
     const double tol = 1e-10;
@@ -163,7 +167,26 @@ BOOST_AUTO_TEST_SUITE(ConfigVariable)
         BOOST_CHECK_EQUAL(fx.getTimeSeries().getIndex(inRangeDate), expectedIndex);
         BOOST_CHECK_EQUAL(fx.getTimeSeries().getValue(inRangeDate), fx.getTimeSeries().getValue(expectedIndex));
         BOOST_CHECK_THROW(fx.getTimeSeries().getIndex(outRangeDate), std::out_of_range);
+        BOOST_CHECK_THROW(fx.getTimeSeries().getValue(outRangeDate), std::out_of_range);
     }
+
+    BOOST_AUTO_TEST_CASE(TimeSeries_excep)
+    {
+        Common::TimeSeries ts;
+        BOOST_CHECK_THROW(ts.set("bar", {1.0, 3.5}, {boost::gregorian::date(2017, 03, 31)}), std::runtime_error);
+        BOOST_CHECK_THROW(Common::TimeSeries other("foo", {1.0, 3.5}, {boost::gregorian::date(2017, 03, 31)}), std::runtime_error);
+
+        const Fixture fx;
+        ts = fx.getTimeSeries();
+        ts.pushBack(boost::gregorian::date(2000, 6, 30), 234);
+
+        BOOST_CHECK(ts != fx.getTimeSeries());
+        BOOST_CHECK_THROW(ts + fx.getTimeSeries(), std::runtime_error);
+        BOOST_CHECK_THROW(ts - fx.getTimeSeries(), std::runtime_error);
+        BOOST_CHECK_THROW(ts * fx.getTimeSeries(), std::runtime_error);
+        BOOST_CHECK_THROW(ts / fx.getTimeSeries(), std::runtime_error);
+    }
+
 BOOST_AUTO_TEST_SUITE_END()
 
 
@@ -285,7 +308,7 @@ BOOST_AUTO_TEST_SUITE(ConfigModelSpec)
         fx.f_startDate = boost::gregorian::date(2007, 03, 31);
         Common::ConfigModelSpecRegression spec(fx.f_dv, fx.f_ivs, fx.f_modelSubType, fx.f_startDate);
 
-        boost::gregorian::date expectedFirstValidRegressionDate(2007, 9, 30);
+        boost::gregorian::date expectedFirstValidRegressionDate(2008, 6, 30);
 
         Common::DataSet ds;
         loadDataSet(inputRelativePath + inputDataSetFileName, ds);
@@ -293,7 +316,7 @@ BOOST_AUTO_TEST_SUITE(ConfigModelSpec)
         BOOST_CHECK_EQUAL(spec.getFirstValidRegressionDate(ds), expectedFirstValidRegressionDate);
         BOOST_CHECK_EQUAL(spec.getModelSubType(), fx.f_modelSubType);
 
-        fx.f_startDate = boost::gregorian::date(2008, 3, 31);
+        fx.f_startDate = boost::gregorian::date(2008, 9, 30);
         Common::ConfigModelSpecRegression anotherSpec(fx.f_dv, fx.f_ivs, fx.f_modelSubType, fx.f_startDate);
         BOOST_CHECK_EQUAL(anotherSpec.getFirstValidRegressionDate(ds), fx.f_startDate);
     }
@@ -301,7 +324,7 @@ BOOST_AUTO_TEST_SUITE(ConfigModelSpec)
 BOOST_AUTO_TEST_SUITE_END()
 
 
-BOOST_AUTO_TEST_SUITE(ConfigModelSpecTable)
+BOOST_AUTO_TEST_SUITE(ConfigMap)
     struct Fixture
     {
         //Default fixture
@@ -323,7 +346,7 @@ BOOST_AUTO_TEST_SUITE(ConfigModelSpecTable)
 
     };
 
-    BOOST_AUTO_TEST_CASE(ConfigModelSpecTable_all)
+    BOOST_AUTO_TEST_CASE(ConfigMap_configModelSpec_all)
     {
         Fixture defFx;
         defFx.f_modelSubType = "ols_lm";
@@ -337,37 +360,125 @@ BOOST_AUTO_TEST_SUITE(ConfigModelSpecTable)
         Common::ConfigModelSpecRegression otherSpec(otherFx.f_dv, otherFx.f_ivs, otherFx.f_modelSubType, otherFx.f_startDate);
 
         //Test constructors
-        Common::ConfigModelSpecTable table;
-        table.addModelSpec(spec), table.addModelSpec(otherSpec);
+        Common::ConfigMap<Common::ConfigModelSpec> table;
+        table.addConfigItem(spec.getDependentVariable().getBasename(), spec);
+        table.addConfigItem(otherSpec.getDependentVariable().getBasename(), otherSpec);
 
-        //[AC] Note that a simple initialization list wouldn't work here as move construction is not currently supported
-        //std::unique_ptr is not copyable but only movable
-        std::vector<std::unique_ptr<Common::ConfigModelSpec>> v;
-        v.push_back(std::make_unique<Common::ConfigModelSpecRegression>(spec)), v.push_back(std::make_unique<Common::ConfigModelSpecRegression>(otherSpec));
-        Common::ConfigModelSpecTable otherTable(v);
-        BOOST_CHECK(table == otherTable);
+        Common::ConfigMap<Common::ConfigModelSpec> otherTable;
 
         //Test copy semantics
-        Common::ConfigModelSpecTable cTable(table);
+        Common::ConfigMap<Common::ConfigModelSpec> cTable(table);
         BOOST_CHECK(table == cTable);
-        cTable = otherTable;
+        otherTable = cTable;
         BOOST_CHECK(cTable == table);
 
         //Test move semantics
-        Common::ConfigModelSpecTable mvTable(std::move(cTable));
+        Common::ConfigMap<Common::ConfigModelSpec> mvTable(std::move(cTable));
         BOOST_CHECK(table == mvTable);
-        mvTable = Common::ConfigModelSpecTable(table);
+        mvTable = Common::ConfigMap<Common::ConfigModelSpec>(table);
         BOOST_CHECK(table == mvTable);
 
-        BOOST_CHECK_EQUAL(table.getConfigModelSpecTable().size(), 2);
-        BOOST_CHECK(*table.getConfigModelSpec(otherFx.f_dv.getBasename()) == otherSpec);
+        BOOST_CHECK_EQUAL(table.getConfigMap().size(), 2);
+        BOOST_CHECK(*table.getValue(otherFx.f_dv.getBasename()) == otherSpec);
 
-        table.removeData(otherFx.f_dv.getBasename());
-        BOOST_CHECK_THROW(*table.getConfigModelSpec(otherFx.f_dv.getBasename()), std::out_of_range);
+        table.removeConfigItem(otherFx.f_dv.getBasename());
+        BOOST_CHECK_THROW(*table.getValue(otherFx.f_dv.getBasename()), std::out_of_range);
 
-        table.clearAllData();
-        BOOST_CHECK_EQUAL(table.getConfigModelSpecTable().size(), 0);
+        table.clearAllConfigItems();
+        BOOST_CHECK_EQUAL(table.getConfigMap().size(), 0);
         BOOST_CHECK(table != otherTable);
+    }
+
+BOOST_AUTO_TEST_SUITE_END()
+
+
+BOOST_AUTO_TEST_SUITE(curveModel)
+    struct Fixture
+    {
+        Fixture() : f_tenors({"US_TBILL_3M", "US_TBILL_6M", "US_TSY_1Y", "US_TSY_5Y", "US_TSY_10Y", "US_TSY_20Y"}),
+                    f_curveName("us_govi_curve"), f_interpolation("linear") {}
+
+        std::vector<std::string> f_tenors;
+        std::string f_curveName;
+        std::string f_interpolation;
+    };
+
+    void loadDataSet(const std::string& fileName, Common::DataSet& ds)
+    {
+        ds.clearAllData();
+        Common::JSONParserDecoratorDataSet js;
+        js.readJSON(fileName);
+        ds = js.getDataSet();
+    }
+
+    BOOST_AUTO_TEST_CASE(yieldCurve)
+    {
+        Common::CurveModelDef cmd(Fixture().f_curveName, Fixture().f_interpolation, Fixture().f_tenors);
+        boost::gregorian::date d(2010, 6, 30);
+
+        Common::DataSet ds;
+        loadDataSet(inputRelativePath + "curveModelDef_data_test.json", ds);
+
+        Common::YieldCurve expectedCurve;
+        for (const auto& it: Fixture().f_tenors)
+        {
+            const double t = Common::getTenorInYearsFromVariableName(it), val = ds.getValue(it, d);
+            expectedCurve.emplace(t, val);
+        }
+
+        Common::YieldCurve actualCurve = cmd.getYieldCurve(ds, d);
+        BOOST_CHECK_EQUAL_COLLECTIONS(actualCurve.begin(), actualCurve.end(),
+                expectedCurve.begin(), expectedCurve.end());
+        BOOST_CHECK_EQUAL(cmd.getCurveName(), Fixture().f_curveName);
+
+        //Common::CurveModelDef mcmd(Common::CurveModelDef(Fixture().f_curveName, Fixture().f_interpolation, Fixture().f_tenors));
+        //Test copy semantics
+        Common::CurveModelDef ccmd(cmd);
+        BOOST_CHECK(ccmd == cmd);
+        ccmd = cmd;
+        BOOST_CHECK(ccmd == cmd);
+
+        //Test move semantics
+        Common::CurveModelDef mcmd(std::move(ccmd));
+        BOOST_CHECK(mcmd == cmd);
+        mcmd = Common::CurveModelDef(cmd);
+        BOOST_CHECK(mcmd == cmd);
+    }
+
+    BOOST_AUTO_TEST_CASE(curveModelSpec_linear)
+    {
+        Common::ConfigMap<Common::CurveModelDef> m;
+        m.addConfigItem(Fixture().f_curveName, Common::CurveModelDef(Fixture().f_curveName, Fixture().f_interpolation, Fixture().f_tenors));
+
+        const Common::ConfigVariable variable("US_TSY_7Y|L|0");
+
+        boost::gregorian::date d(2010, 6, 30);
+
+        Common::DataSet ds;
+        loadDataSet(inputRelativePath + "curveModelDef_data_test.json", ds);
+
+        const double r = m.getValue(Fixture().f_curveName) -> interpolate(variable, d, ds);
+        const double expectedR = 2.262;
+        BOOST_CHECK_EQUAL(r, expectedR);
+    }
+
+    BOOST_AUTO_TEST_CASE(curveModelSpec_cubic)
+    {
+        Fixture fx;
+        fx.f_interpolation = "cubic";
+        Common::ConfigMap<Common::CurveModelDef> m;
+        m.addConfigItem(fx.f_curveName, Common::CurveModelDef(fx.f_curveName, fx.f_interpolation, fx.f_tenors));
+
+        const Common::ConfigVariable variable("US_TSY_7Y|L|0");
+
+        boost::gregorian::date d(2010, 6, 30);
+
+        Common::DataSet ds;
+        loadDataSet(inputRelativePath + "curveModelDef_data_test.json", ds);
+
+        const double r = m.getValue(Fixture().f_curveName) -> interpolate(variable, d, ds);
+        const double expectedR = 2.3869750481261525;
+        BOOST_CHECK_EQUAL(r, expectedR);
     }
 
 BOOST_AUTO_TEST_SUITE_END()

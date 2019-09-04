@@ -21,7 +21,6 @@ dataDict = dict()
 dateColumnHeader = excelData.columns[0]
 excelData[dateColumnHeader] = pd.to_datetime(excelData[dateColumnHeader])
 valuesKeyName = "Values"
-# variableKeyName = "VariableName"
 datesKeyName = "Dates"
 
 for column in excelData.columns:
