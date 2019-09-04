@@ -6,7 +6,7 @@
 #define WILDCATSTKCORE_RELATIVEMODEL_H
 
 #include <vector>
-
+#include <memory>
 
 namespace Math
 {
