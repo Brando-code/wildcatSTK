@@ -6,6 +6,8 @@
  *--------------------------------------------------------------------------------------------------------------------*/
 #include "RegressionModel.h"
 #include <boost/numeric/ublas/lu.hpp>
+#include <boost/qvm/mat_operations.hpp>
+#include <boost/qvm/mat_traits_array.hpp>
 
 
 // Matrix inversion
@@ -21,6 +23,39 @@ boost::numeric::ublas::matrix<double> Math::inverseBST (const boost::numeric::ub
     return invertedMatrix;
 }
 
+// Matrix determinant sign
+int Math::determinantSign(const boost::numeric::ublas::permutation_matrix<std::size_t> &permutationMatrix)
+{
+    int detSign = 1.;
+    for (int i = 0; i < permutationMatrix.size(); ++i)
+    {
+        if (i != permutationMatrix(i))
+            detSign *= -1.;
+    }
+    return detSign;
+}
+
+// Matrix determinant
+double Math::matrixDeterminant(boost::numeric::ublas::matrix<double> inputMatrix)
+{
+    boost::numeric::ublas::permutation_matrix<std::size_t> permutationMatrix(inputMatrix.size1());
+
+    double determinant = 1.;
+    if (boost::numeric::ublas::lu_factorize(inputMatrix, permutationMatrix))
+    {
+        determinant = 0.;
+    }
+    else
+    {
+        for (int i = 0; i < inputMatrix.size1(); ++i)
+        {
+            determinant *= inputMatrix(i, i);
+        }
+        determinant *= determinantSign(permutationMatrix);
+    }
+    return determinant;
+}
+
 // Cholesky Decomposition
 boost::numeric::ublas::matrix<double> Math::choleskyDecomp(const boost::numeric::ublas::matrix<double> &inputMatrix)
 {
@@ -29,12 +64,12 @@ boost::numeric::ublas::matrix<double> Math::choleskyDecomp(const boost::numeric:
     boost::numeric::ublas::matrix<double> outputMatrix(boost::numeric::ublas::zero_matrix<double>(dim,dim));
 
     double sum;
-    for (int i = 0; i < dim ; ++i)
+    for (unsigned int i = 0; i < dim ; ++i)
     {
-        for (int k = 0; k < i + 1; ++k)
+        for (unsigned int k = 0; k < i + 1; ++k)
         {
             sum = 0;
-            for (int j = 0; j < k; ++j)
+            for (unsigned int j = 0; j < k; ++j)
             {
                 sum += outputMatrix(i,j) * outputMatrix(k,j);
             }
@@ -49,7 +84,7 @@ boost::numeric::ublas::matrix<double> Math::choleskyDecomp(const boost::numeric:
 // From std vector to Boost vector conversation
 boost::numeric::ublas::vector<double> Math::stdVec2bstVec (const std::vector<double> &inputVector)
 {
-    boost::numeric::ublas::vector<double> outputVector;
+    boost::numeric::ublas::vector<double> outputVector(inputVector.size());
     for (unsigned long i = 0; i < outputVector.size(); ++i)
         outputVector(i) = inputVector.at(i);
 
@@ -68,13 +103,26 @@ std::vector<double> Math::bstVec2stdVec (const boost::numeric::ublas::vector<dou
 
 /*REGRESSION MODEL METHODS
  * --------------------------------------------------------------------------------------------------------*/
-//Math::RegressionModelOLS::RegressionModelOLS(const Math::RegressionModelAlgorithm &regressionAlgorithm) :
-//    m_algorithmPtr(regressionAlgorithm.clone()) {}
+Math::RegressionModelOLS::RegressionModelOLS() :
+    m_algorithmPtr(Math::RegressionModelAlgorithmCholesky().clone())
+{
+
+}
+
+Math::RegressionModelOLS::RegressionModelOLS(const Math::RegressionModelOLS &other) :
+    m_algorithmPtr(other.m_algorithmPtr -> clone())
+{
+
+}
 
 void Math::RegressionModelOLS::calibrate(std::vector<double> &coefficients, const std::vector<double> &dependentVariableValues,
                                          const boost::numeric::ublas::matrix<double> &independentVariableValues) const
 {
-    //m_algorithmPtr ->calibrate(coefficients, dependentVariableValues, independentVariableValues);
+    if (dependentVariableValues.size() == independentVariableValues.size1() and independentVariableValues.size1() > 2)
+        m_algorithmPtr -> calibrate(coefficients, dependentVariableValues, independentVariableValues);
+    else
+        throw std::runtime_error("Math::RegressionModelOLS::calibrate : "
+                                 "at least two observations are needed for regression model to run.");
 }
 
 std::unique_ptr<Math::RegressionModel> Math::RegressionModelOLS::clone() const
@@ -89,17 +137,19 @@ void Math::RegressionModelAlgorithmMoorePenrose::calibrate(std::vector<double> &
 {
     coefficients.clear();
 
-    boost::numeric::ublas::matrix<double> transposedIndiVal(boost::numeric::ublas::trans(independentVariableValues));
+    const boost::numeric::ublas::matrix<double> transposedIndiVal(boost::numeric::ublas::trans(independentVariableValues));
+    const boost::numeric::ublas::matrix<double> productTransIndiVal(prod(transposedIndiVal, independentVariableValues));
 
-    boost::numeric::ublas::matrix<double> productTransIndiVal(prod(transposedIndiVal, independentVariableValues));
+    // Invertible controller
+    double determinantMatrix(Math::matrixDeterminant(productTransIndiVal));
+    if (determinantMatrix == 0.)
+        throw std::runtime_error("Error: matrix is not invertible.");
 
-    boost::numeric::ublas::matrix<double> inverseProduct(inverseBST(productTransIndiVal));
+    const boost::numeric::ublas::matrix<double> inverseProduct(inverseBST(productTransIndiVal));
+    const boost::numeric::ublas::matrix<double> productInverseTransposed(prod(inverseProduct, transposedIndiVal));
+    const boost::numeric::ublas::vector<double> dependentVariable = Math::stdVec2bstVec(dependentVariableValues);
 
-    boost::numeric::ublas::matrix<double> productInverseTransposed(prod(inverseProduct, transposedIndiVal));
-
-    boost::numeric::ublas::vector<double> dependentVariable(Math::stdVec2bstVec(dependentVariableValues));
-
-    boost::numeric::ublas::vector<double>  temp_coefficients(prod(productInverseTransposed, dependentVariable));
+    const boost::numeric::ublas::vector<double>  temp_coefficients(prod(productInverseTransposed, dependentVariable));
     coefficients = Math::bstVec2stdVec(temp_coefficients);
 }
 
@@ -112,47 +162,40 @@ void Math::RegressionModelAlgorithmCholesky::calibrate(std::vector<double> &coef
                                                        const std::vector<double> &dependentVariableValues,
                                                        const boost::numeric::ublas::matrix<double> &independentVariableValues) const
 {
-    boost::numeric::ublas::matrix<double>choleskyFactor(choleskyDecomp(independentVariableValues));
+    const boost::numeric::ublas::matrix<double> transposedIndiVal(boost::numeric::ublas::trans(independentVariableValues));
+    const boost::numeric::ublas::matrix<double> productTransIndiVal = prod(transposedIndiVal, independentVariableValues);
+    const boost::numeric::ublas::matrix<double> choleskyFactor(choleskyDecomp(productTransIndiVal));
 
-    int dim = choleskyFactor.size1();
+    const int dim = choleskyFactor.size1();
 
-    // solve lower triangular system L*w=A*b for w by forward substitution (* = transposition)
-    boost::numeric::ublas::matrix<double>transpCholeskyFactor(trans(choleskyFactor));
+    // solve lower triangular system Lw=A*b for w by forward substitution (* = transposition)
 
-    boost::numeric::ublas::matrix<double> transposedIndiVal(trans(independentVariableValues));
+    const boost::numeric::ublas::vector<double> dependentVariable(Math::stdVec2bstVec(dependentVariableValues));
+    const boost::numeric::ublas::vector<double> productAb = prod(transposedIndiVal, dependentVariable);
 
-    boost::numeric::ublas::vector<double> dependentVariable(Math::stdVec2bstVec(dependentVariableValues));
-
-    boost::numeric::ublas::vector<double> productAb(prod(transposedIndiVal, dependentVariable));
-
-    boost::numeric::ublas::vector<double> omegaVector;
-    omegaVector(0) = (productAb(0) / choleskyFactor(0,0));
-
-    double sum;
-    for (int i = 1; i < dim; ++i)
+    boost::numeric::ublas::vector<double> omegaVector(choleskyFactor.size2());
+    for (unsigned int i = 0; i < dim; ++i)
     {
-        sum = 0;
-        for (int j = 0; j < i; ++j)
+        double sum = 0;
+        for (unsigned int j = 0; j < i; ++j)
         {
-            sum += transpCholeskyFactor(i,j) * omegaVector(j);
+            sum += choleskyFactor(i,j) * omegaVector(j);
         }
 
-        omegaVector(i) = (productAb(i) - sum) / transpCholeskyFactor(i,i);
+        omegaVector(i) = (productAb(i) - sum) / choleskyFactor(i,i);
     }
 
-    // solve upper triangular system Lx=w for x by backward substitution
+    // solve upper triangular system L*x=w for x by backward substitution
+    const boost::numeric::ublas::matrix<double>transpCholeskyFactor(trans(choleskyFactor));
     boost::numeric::ublas::vector<double> xVector(dim);
-
-    xVector(dim) = omegaVector(dim) / choleskyFactor(dim,dim);
-
     for (int i = dim - 1; i >= 0 ; --i)
     {
-        sum = 0;
-        for (int j = i + 1; j <= dim ; ++j)
+        double sum = 0;
+        for (unsigned int j = i + 1; j < dim ; ++j)
         {
-            sum += choleskyFactor(i,j) * xVector(j);
+            sum += transpCholeskyFactor(i,j) * xVector(j);
         }
-        xVector(i) = (omegaVector(i) - sum) / choleskyFactor(i,i);
+        xVector(i) = (omegaVector(i) - sum) / transpCholeskyFactor(i,i);
     }
 
     coefficients = Math::bstVec2stdVec(xVector);

@@ -11,17 +11,21 @@
 #include "Utils.h"
 #include <cmath>
 #include <random>
+#include <bits/stdc++.h>
 #include "../Common/Math/Statistics/Stat.h"
 #include "../Common/Math/Relative/RelativeModel.h"
 #include "../Common/Math/MLRegression/RegressionModel.h"
 #include "../Common/Math/Interpolation/Interpolator.h"
 #include "../Common/Math/Interpolation/LinearInterpolator.h"
 #include "../Common/Math/Interpolation/NaturalCubicSplineInterpolator.h"
+#include "../Common/Types/DataSet.h"
+#include "../Common/Utils/IO/JSONParser.h"
 
 namespace utf = boost::unit_test;
 namespace tt = boost::test_tools;
 
 const std::string expectedOutputRelativePath = "../UnitTests/Outputs/Expected/";
+const std::string inputRelativePath = "../UnitTests/Inputs/";
 
 BOOST_AUTO_TEST_SUITE(Statistics)
     const double tol = 0.1;
@@ -181,6 +185,74 @@ BOOST_AUTO_TEST_SUITE_END()
 
 BOOST_AUTO_TEST_SUITE(MLRegression)
 
+    // DataSet loader from json file
+    void loadDataSet(const std::string& fullFileName, Common::DataSet& ds)
+    {
+        Common::JSONParserDecoratorDataSet js;
+        js.readJSON(fullFileName);
+        ds = js.getDataSet();
+    }
+
+    // Percentage values calculator
+    double percentageValuesCalc (const Common::DataSet& ds, const std::string& dataSet, unsigned int index)
+    {
+        double percentageValue =
+                (ds.getTimeSeries(dataSet).getValues().at(index) / ds.getTimeSeries(dataSet).getValues().at(index - 1)) - 1;
+
+        return  percentageValue;
+    }
+
+    // Fixture structure for vector and matrix preload for regression tests
+    struct FxInputData
+    {
+        explicit FxInputData(const std::vector<std::string>& idVarNames, const std::string& fileName) :
+                                                                                m_idVarNames(idVarNames), m_fileName(fileName)
+        {
+            loadDataSet(inputRelativePath + fileName, m_ds);
+
+            // Most recent usable date finder
+            //boost::gregorian::date mostRecentDate { 1700, 1, 1 };
+            boost::gregorian::date mostRecentDate(boost::gregorian::from_string("1452/4/15")); //Leonardo Da Vici's birthday
+            for (const auto& var : m_idVarNames)
+            {
+                if (m_ds.getTimeSeries(var).getDates().at(0) > mostRecentDate)
+                    mostRecentDate = m_ds.getTimeSeries(var).getDates().at(0);
+            }
+
+            // Dependent variables vector loader with percentage values
+            unsigned int indexY = m_ds.getTimeSeries(m_idVarNames[0]).getIndex(mostRecentDate);
+            std::vector<double> vectorY;
+            double percValue;
+            for (unsigned int i = indexY + 1; i < m_ds.getTimeSeries(m_idVarNames[0]).getValues().size(); ++i)
+            {
+                vectorY.push_back(percValue = percentageValuesCalc(m_ds, m_idVarNames[0], i));
+            }
+
+            // Independent values matrix loader with percentage values
+            boost::numeric::ublas::matrix<double> matrixXn(vectorY.size(), m_idVarNames.size(), 1);
+            unsigned int column = 0;
+            for (auto it = m_idVarNames.cbegin() + 1; it < m_idVarNames.cend(); ++it)
+            {
+                unsigned int index = m_ds.getTimeSeries(*it).getIndex(mostRecentDate);
+                for (int i = 0; i < vectorY.size(); ++i)
+                {
+                    matrixXn(i, column) = percentageValuesCalc(m_ds, *it, index + 1);
+                    index++;
+                }
+                column++;
+            }
+
+            m_dVar = vectorY;
+            m_idVars = matrixXn;
+        }
+
+        Common::DataSet m_ds;
+        std::string m_fileName;
+        std::vector<std::string> m_idVarNames;
+        std::vector<double> m_dVar;
+        boost::numeric::ublas::matrix<double> m_idVars;
+    };
+
     // Matrix reader
     void readMatrix (const boost::numeric::ublas::matrix<double>& matrix)
     {
@@ -192,6 +264,21 @@ BOOST_AUTO_TEST_SUITE(MLRegression)
             }
             std::cout << std::endl;
         }
+    }
+
+    BOOST_AUTO_TEST_CASE(MatrixDeterminantTest)
+    {
+        boost::numeric::ublas::matrix<double> inputMatrix(3, 3);
+
+        inputMatrix(0, 0) = 1.; inputMatrix(0, 1) = 1.; inputMatrix(0, 2) = 1.;
+        inputMatrix(1, 0) = 2.; inputMatrix(1, 1) = -1.; inputMatrix(1, 2) = 1.;
+        inputMatrix(2, 0) = 1.; inputMatrix(2, 1) = 1.; inputMatrix(2, 2) = 2.;
+
+        double matrixDeterminant(Math::matrixDeterminant(inputMatrix));
+
+        double expectedDeterminant = -3.;
+
+        BOOST_TEST(matrixDeterminant == expectedDeterminant);
     }
 
     BOOST_AUTO_TEST_CASE(InversionMatrixTest)
@@ -253,6 +340,62 @@ BOOST_AUTO_TEST_SUITE(MLRegression)
             {
                 BOOST_TEST(factorizedMatrix(i, j) == expectedMatrix(i, j));
             }
+    }
+
+    BOOST_AUTO_TEST_CASE(MoorePenroseRegressionTest, *utf::tolerance(1e-4))
+    {
+        const std::string fileName = "DataSet_clean.json";
+        const std::vector<std::string> varNames = {"HANG_SENG", "DOW_JONES", "US_GDP_SAAR"}; // First element is my Y, ever!
+        FxInputData fx(varNames, fileName);
+        std::vector<double> vectorY = fx.m_dVar;
+        boost::numeric::ublas::matrix<double> independentValuesMatrix = fx.m_idVars;
+        std::vector<double> coefficients;
+
+        clock_t startTime = clock();
+
+        Math::RegressionModelAlgorithmMoorePenrose mpRegression;
+        mpRegression.calibrate(coefficients, vectorY, independentValuesMatrix);
+
+        clock_t endTime = clock();
+        double executionTime = double (endTime - startTime) / double (CLOCKS_PER_SEC);
+
+        std::cout << "Execution time in: " << executionTime << " seconds" << std::endl;
+
+        std::vector<double> targetCoefficients;
+        targetCoefficients.push_back(1.0957);
+        targetCoefficients.push_back(1.9296);
+        targetCoefficients.push_back(-0.021125);
+
+        BOOST_TEST(coefficients == targetCoefficients, tt::per_element());
+
+    }
+
+    BOOST_AUTO_TEST_CASE(CholeskyRegressionTest, *utf::tolerance(1e-4))
+    {
+        const std::string fileName = "DataSet_clean.json";
+        const std::vector<std::string> varNames = {"HANG_SENG", "DOW_JONES", "US_GDP_SAAR"}; // First element is my Y, ever!
+        FxInputData fx(varNames, fileName);
+        std::vector<double> vectorY = fx.m_dVar;
+        boost::numeric::ublas::matrix<double> independentValuesMatrix = fx.m_idVars;
+        std::vector<double> coefficients;
+
+        clock_t startTime = clock();
+
+        Math::RegressionModelOLS chlRegression;
+        chlRegression.calibrate(coefficients, vectorY, independentValuesMatrix);
+
+        clock_t endTime = clock();
+        double executionTime = double (endTime - startTime) / double (CLOCKS_PER_SEC);
+
+        std::cout << "Execution time in: " << executionTime << " seconds" << std::endl;
+
+        std::vector<double> targetCoefficients;
+        targetCoefficients.push_back(1.0957);
+        targetCoefficients.push_back(1.9296);
+        targetCoefficients.push_back(-0.021125);
+
+        BOOST_TEST(coefficients == targetCoefficients, tt::per_element());
+
     }
 
 BOOST_AUTO_TEST_SUITE_END()
