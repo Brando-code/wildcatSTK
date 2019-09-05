@@ -97,6 +97,7 @@ namespace Common
         double predict(const Common::DataSet &ds, unsigned int index) const final;
 
         boost::gregorian::date getFirstValidRegressionDate(const Common::DataSet &ds) const;
+        std::vector<double> getCalibratedCoefficients() const;
 
         std::unique_ptr<Common::ConfigModelSpec> clone() const final;
 

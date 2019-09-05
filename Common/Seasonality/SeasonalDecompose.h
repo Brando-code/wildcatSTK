@@ -20,6 +20,7 @@ namespace Common
         virtual Common::TimeSeries getTrend() const = 0;
         virtual Common::TimeSeries getSeason() const = 0;
         virtual Common::TimeSeries getNoise() const = 0;
+        virtual Common::TimeSeries getDeseasoned() const = 0;
 
         unsigned int getPeriod() const;
 
@@ -44,6 +45,7 @@ namespace Common
         Common::TimeSeries getTrend() const final;
         Common::TimeSeries getSeason() const final;
         Common::TimeSeries getNoise() const final;
+        Common::TimeSeries getDeseasoned() const = 0;
 
         std::unique_ptr<Common::SeasonalDecompose> clone() const = 0;
 
@@ -63,6 +65,7 @@ namespace Common
     {
     public:
         SeasonalDecomposeConvolutionAdditive(unsigned int period);
+        Common::TimeSeries getDeseasoned() const final;
 
         std::unique_ptr<Common::SeasonalDecompose> clone() const final;
 
@@ -75,6 +78,7 @@ namespace Common
     {
     public:
         SeasonalDecomposeConvolutionMultiplicative(unsigned int period);
+        Common::TimeSeries getDeseasoned() const final;
 
         std::unique_ptr<Common::SeasonalDecompose> clone() const final;
 

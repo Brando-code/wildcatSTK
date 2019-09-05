@@ -248,18 +248,11 @@ void Common::ConfigModelSpecRegression::calibrate(const Common::DataSet &ds)
     //get first available date across drivers and dependent variable
     const boost::gregorian::date firstValidDate = getFirstValidRegressionDate(ds);
 
-    //construct array of dependent variable values to be used by MLRegression
-    /*
-    const unsigned long dVariableFirstIndex = ds.getTimeSeries(m_dVariable.getBasename()).getIndex(firstValidDate);
-    std::vector<double>::const_iterator begin = ds.getTimeSeries(m_dVariable.getBasename()).getValues().begin() + dVariableFirstIndex;
-    std::vector<double>::const_iterator end = ds.getTimeSeries(m_dVariable.getBasename()).getValues().end();
-    const std::vector<double> dVariableValuesForRegression(begin, end);
-     */
+    //construct array of transformed dependent variable values to be used by MLRegression
     const std::vector<double> dVariableValuesForRegression =
             _getTransformedValues(ds.getTimeSeries(m_dVariable.getBasename()), firstValidDate, m_dVariable);
 
-    //construct matrix of independent variable values to be used by MLRegression
-    //const unsigned long nRows = ds.getTimeSeries(m_dVariable.getBasename()).getDates().size() - dVariableFirstIndex;
+    //construct matrix of transformed independent variable values to be used by MLRegression
     const unsigned long nRows = dVariableValuesForRegression.size();
     const unsigned long nCols = m_idVariables.size();
     boost::numeric::ublas::matrix<double> idVariableValuesForRegression(nRows, nCols + 1, 1);
@@ -269,19 +262,17 @@ void Common::ConfigModelSpecRegression::calibrate(const Common::DataSet &ds)
         const std::vector<double> idVariableTransformedValues =
                 _getTransformedValues(ds.getTimeSeries(m_idVariables.at(i).getBasename()), firstValidDate, m_idVariables.at(i));
 
-        //const unsigned int idVariableFirstIndex = ds.getTimeSeries(m_idVariables.at(i).getBasename()).getIndex(firstValidDate);
         for (unsigned long j = 0; j < nRows; ++j)
         {
             //fill in matrix with values
-            //const double value = ds.getTimeSeries(m_idVariables.at(i).getBasename()).getValue(j + idVariableFirstIndex);
-            const double value = idVariableTransformedValues.at(i);
-            idVariableValuesForRegression(i, j) = value;
+            const double value = idVariableTransformedValues.at(j);
+            idVariableValuesForRegression(j, i) = value;
         }
     }
 
     //delegate execution to RegressionModelObject
     m_coeff.clear();
-    //m_modelPtr -> calibrate(dVariableValuesForRegression, idVariableValuesForRegression, m_params);
+    m_modelPtr -> calibrate(m_coeff, dVariableValuesForRegression, idVariableValuesForRegression);
 }
 
 double Common::ConfigModelSpecRegression::predict(const Common::DataSet &ds, unsigned int index) const
@@ -300,6 +291,11 @@ double Common::ConfigModelSpecRegression::predict(const Common::DataSet &ds, uns
     dTransformedVariable += intercept;
     const Common::TimeSeries ts = ds.getTimeSeries(m_dVariable.getBasename());
     return m_dVariable.getLevel(ts, dTransformedVariable, index);
+}
+
+std::vector<double> Common::ConfigModelSpecRegression::getCalibratedCoefficients() const
+{
+    return m_coeff;
 }
 
 std::unique_ptr<Common::ConfigModelSpec> Common::ConfigModelSpecRegression::clone() const

@@ -11,7 +11,7 @@
 #include "Utils.h"
 #include <cmath>
 #include <random>
-#include <bits/stdc++.h>
+#include <ctime>
 #include <list>
 #include <iterator>
 #include "../Common/Math/Statistics/Stat.h"
@@ -271,10 +271,10 @@ BOOST_AUTO_TEST_SUITE(MLRegression)
     }
 
     // Percentage values calculator
-    double percentageValuesCalc (const Common::DataSet& ds, const std::string& dataSet, unsigned int index)
+    double percentageValuesCalc (const Common::DataSet& ds, const std::string& variableName, unsigned int index)
     {
-        double percentageValue =
-                (ds.getTimeSeries(dataSet).getValues().at(index) / ds.getTimeSeries(dataSet).getValues().at(index - 1)) - 1;
+        const double percentageValue =
+                (ds.getTimeSeries(variableName).getValues().at(index) / ds.getTimeSeries(variableName).getValues().at(index - 1)) - 1;
 
         return  percentageValue;
     }
@@ -282,41 +282,40 @@ BOOST_AUTO_TEST_SUITE(MLRegression)
     // Fixture structure for vector and matrix preload for regression tests
     struct FxInputData
     {
-        explicit FxInputData(const std::vector<std::string>& idVarNames, const std::string& fileName) :
-                                                                                m_idVarNames(idVarNames), m_fileName(fileName)
+        FxInputData(const std::string &dVarName,
+                    const std::vector<std::string>& idVarNames,
+                    const std::string& fileName) :
+                        m_idVarNames(idVarNames), m_dVarName(dVarName), m_fileName(fileName)
         {
             loadDataSet(inputRelativePath + fileName, m_ds);
 
-            // Most recent usable date finder
-            //boost::gregorian::date mostRecentDate { 1700, 1, 1 };
-            boost::gregorian::date mostRecentDate(boost::gregorian::from_string("1452/4/15")); //Leonardo Da Vici's birthday
+            boost::gregorian::date firstValidDate = m_ds.getTimeSeries(m_dVarName).getDates().at(0);
             for (const auto& var : m_idVarNames)
             {
-                if (m_ds.getTimeSeries(var).getDates().at(0) > mostRecentDate)
-                    mostRecentDate = m_ds.getTimeSeries(var).getDates().at(0);
+                if (m_ds.getTimeSeries(var).getDates().at(0) > firstValidDate)
+                    firstValidDate = m_ds.getTimeSeries(var).getDates().at(0);
             }
 
             // Dependent variables vector loader with percentage values
-            unsigned int indexY = m_ds.getTimeSeries(m_idVarNames[0]).getIndex(mostRecentDate);
+            unsigned int indexY = m_ds.getTimeSeries(m_dVarName).getIndex(firstValidDate);
             std::vector<double> vectorY;
-            double percValue;
-            for (unsigned int i = indexY + 1; i < m_ds.getTimeSeries(m_idVarNames[0]).getValues().size(); ++i)
+            for (unsigned int i = indexY + 1; i < m_ds.getTimeSeries(m_dVarName).length(); ++i)
             {
-                vectorY.push_back(percValue = percentageValuesCalc(m_ds, m_idVarNames[0], i));
+                vectorY.push_back(percentageValuesCalc(m_ds, m_dVarName, i));
             }
 
             // Independent values matrix loader with percentage values
-            boost::numeric::ublas::matrix<double> matrixXn(vectorY.size(), m_idVarNames.size(), 1);
+            boost::numeric::ublas::matrix<double> matrixXn(vectorY.size(), m_idVarNames.size() + 1, 1);
             unsigned int column = 0;
-            for (auto it = m_idVarNames.cbegin() + 1; it < m_idVarNames.cend(); ++it)
+            for (auto it = m_idVarNames.cbegin(); it < m_idVarNames.cend(); ++it)
             {
-                unsigned int index = m_ds.getTimeSeries(*it).getIndex(mostRecentDate);
+                unsigned int index = m_ds.getTimeSeries(*it).getIndex(firstValidDate);
                 for (int i = 0; i < vectorY.size(); ++i)
                 {
                     matrixXn(i, column) = percentageValuesCalc(m_ds, *it, index + 1);
-                    index++;
+                    ++index;
                 }
-                column++;
+                ++column;
             }
 
             m_dVar = vectorY;
@@ -324,7 +323,7 @@ BOOST_AUTO_TEST_SUITE(MLRegression)
         }
 
         Common::DataSet m_ds;
-        std::string m_fileName;
+        std::string m_fileName, m_dVarName;
         std::vector<std::string> m_idVarNames;
         std::vector<double> m_dVar;
         boost::numeric::ublas::matrix<double> m_idVars;
@@ -422,8 +421,9 @@ BOOST_AUTO_TEST_SUITE(MLRegression)
     BOOST_AUTO_TEST_CASE(MoorePenroseRegressionTest, *utf::tolerance(1e-4))
     {
         const std::string fileName = "sample_dataSet_clean.json";
-        const std::vector<std::string> varNames = {"HANG_SENG", "DOW_JONES", "US_GDP_SAAR"}; // First element is my Y, ever!
-        FxInputData fx(varNames, fileName);
+        const std::string dVarName = "HANG_SENG";
+        const std::vector<std::string> idVarNames = {"DOW_JONES", "US_GDP_SAAR"};
+        FxInputData fx(dVarName, idVarNames, fileName);
         std::vector<double> vectorY = fx.m_dVar;
         boost::numeric::ublas::matrix<double> independentValuesMatrix = fx.m_idVars;
         std::vector<double> coefficients;
@@ -450,8 +450,9 @@ BOOST_AUTO_TEST_SUITE(MLRegression)
     BOOST_AUTO_TEST_CASE(CholeskyRegressionTest, *utf::tolerance(1e-4))
     {
         const std::string fileName = "sample_dataSet_clean.json";
-        const std::vector<std::string> varNames = {"HANG_SENG", "DOW_JONES", "US_GDP_SAAR"}; // First element is my Y, ever!
-        FxInputData fx(varNames, fileName);
+        const std::string dVarName = "HANG_SENG";
+        const std::vector<std::string> idVarNames = {"DOW_JONES", "US_GDP_SAAR"};
+        FxInputData fx(dVarName, idVarNames, fileName);
         std::vector<double> vectorY = fx.m_dVar;
         boost::numeric::ublas::matrix<double> independentValuesMatrix = fx.m_idVars;
         std::vector<double> coefficients;

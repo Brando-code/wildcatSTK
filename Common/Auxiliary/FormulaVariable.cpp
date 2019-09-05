@@ -47,19 +47,16 @@ void Common::FormulaVariableFunctionalDeSeason::_decompose(const Common::DataSet
     }
 }
 
-double Common::FormulaVariableFunctionalDeSeason::evaluate(const Common::DataSet &ds, const boost::gregorian::date &date) const
+Common::TimeSeries Common::FormulaVariableFunctionalDeSeason::compute(const Common::DataSet &ds) const
 {
     _decompose(ds);
-    return (m_decompPtr -> getTrend() + m_decompPtr -> getNoise()).getValue(date);
+    return m_decompPtr -> getDeseasoned();
 }
 
-std::vector<double> Common::FormulaVariableFunctionalDeSeason::getLastSeasonalCycle(const Common::DataSet &ds) const
+Common::TimeSeries Common::FormulaVariableFunctionalDeSeason::getSeason(const Common::DataSet &ds) const
 {
     _decompose(ds);
-    const unsigned int cycleLength = m_decompPtr -> getPeriod();
-    std::vector<double>::const_iterator begin = m_decompPtr -> getSeason().getValues().end() - cycleLength;
-    std::vector<double>::const_iterator end = m_decompPtr -> getSeason().getValues().end();
-    return std::vector<double>(begin, end);
+    return m_decompPtr -> getSeason();
 }
 
 void Common::FormulaVariableFunctionalDeSeason::set(const std::string &variableName, const std::string &decompositionType,
@@ -70,24 +67,62 @@ void Common::FormulaVariableFunctionalDeSeason::set(const std::string &variableN
     m_isDecomposed = false;
 }
 
-Common::FormulaVariableFunctionalRestoreSeason::FormulaVariableFunctionalRestoreSeason(const std::string &variableName,
+Common::FormulaVariableFunctionalRestoreSeason::FormulaVariableFunctionalRestoreSeason(const std::string &seasonalVariableName,
+                                                                                       const std::string &deSeasonedVariableName,
                                                                                        const std::string &decompositionType,
-                                                                                       const std::vector<double> &lastSeasonalCycle) :
-    m_variable(variableName),
+                                                                                       unsigned int period,
+                                                                                       const Common::TimeSeries &seasonality) :
+    m_seasonalVariable(seasonalVariableName),
+    m_deSeasonedVariable(deSeasonedVariableName),
     m_restorePtr(Global::RestoreSeasonFactoryMapping::instance() -> getFactory(decompositionType) -> create()),
-    m_lastSeasonalCycle(lastSeasonalCycle)
+    m_lastSeasonalCycle(_getLastSeasonalCycle(seasonality, period))
 {
 
 }
 
-void Common::FormulaVariableFunctionalRestoreSeason::set(const std::string &variableName, const std::string &decompositionType,
-                                                         const std::vector<double> &lastSeasonalCycle)
+void Common::FormulaVariableFunctionalRestoreSeason::set(const std::string &seasonalVariableName,
+                                                         const std::string &deSeasonedVariableName,
+                                                         const std::string &decompositionType,
+                                                         unsigned int period,
+                                                         const Common::TimeSeries &seasonality)
 {
-    m_variable = variableName;
+    m_seasonalVariable = seasonalVariableName;
+    m_deSeasonedVariable = deSeasonedVariableName;
     m_restorePtr = Global::RestoreSeasonFactoryMapping::instance() -> getFactory(decompositionType) -> create();
-    m_lastSeasonalCycle = lastSeasonalCycle;
+    m_lastSeasonalCycle = _getLastSeasonalCycle(seasonality, period);
 }
 
+std::vector<double> Common::FormulaVariableFunctionalRestoreSeason::_getLastSeasonalCycle(const Common::TimeSeries &seasonality,
+                                                                                          unsigned int period)
+{
+    m_restoreStartDate = seasonality.getDates().back();
+    std::vector<double>::const_iterator begin = seasonality.getValues().end() - period;
+    std::vector<double>::const_iterator end = seasonality.getValues().end();
+    return std::vector<double>(begin, end);
+}
+
+Common::TimeSeries Common::FormulaVariableFunctionalRestoreSeason::compute(const Common::DataSet &ds) const
+{
+    const unsigned long index = ds.getTimeSeries(m_seasonalVariable).getIndex(m_restoreStartDate);
+    std::vector<double> restoredValues;
+    std::vector<boost::gregorian::date> restoredDates;
+
+    for (unsigned long i = index; i < ds.getTimeSeries(m_seasonalVariable).length(); ++i)
+    {
+        const double trendValue = ds.getValue(m_seasonalVariable, i);
+        double seasonalValue;
+        if (index < m_lastSeasonalCycle.size())
+            seasonalValue = m_lastSeasonalCycle.at(index);
+        else
+            seasonalValue = m_lastSeasonalCycle.at(index % m_lastSeasonalCycle.size());
+
+        ds.getTimeSeries(m_seasonalVariable).pushBack(ds.getTimeSeries(m_seasonalVariable).getDates().at(i),
+                                                      m_restorePtr -> restore(trendValue, seasonalValue));
+    }
+
+    return ds.getTimeSeries(m_seasonalVariable);
+}
+/*
 double Common::FormulaVariableFunctionalRestoreSeason::evaluate(const Common::DataSet &ds, const boost::gregorian::date &date) const
 {
     const unsigned long index = ds.getTimeSeries(m_variable).getIndex(date);
@@ -101,7 +136,7 @@ double Common::FormulaVariableFunctionalRestoreSeason::evaluate(const Common::Da
 
     return m_restorePtr -> restore(trendValue, seasonalValue);
 }
-
+*/
 double Common::RestoreSeasonAdditive::restore(double deSeasonedValue, double seasonalValue) const
 {
     return deSeasonedValue + seasonalValue;

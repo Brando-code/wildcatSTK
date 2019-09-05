@@ -132,6 +132,11 @@ Common::SeasonalDecomposeConvolutionAdditive::SeasonalDecomposeConvolutionAdditi
     SeasonalDecomposeConvolution(period)
 {}
 
+Common::TimeSeries Common::SeasonalDecomposeConvolutionAdditive::getDeseasoned() const
+{
+    return getTrend() + getNoise();
+}
+
 std::unique_ptr<Common::SeasonalDecompose> Common::SeasonalDecomposeConvolutionAdditive::clone() const
 {
     return std::make_unique<Common::SeasonalDecomposeConvolutionAdditive>(*this);
@@ -150,6 +155,11 @@ Common::TimeSeries Common::SeasonalDecomposeConvolutionAdditive::_extractNoise(c
 Common::SeasonalDecomposeConvolutionMultiplicative::SeasonalDecomposeConvolutionMultiplicative(unsigned int period) :
     Common::SeasonalDecomposeConvolution(period)
 {}
+
+Common::TimeSeries Common::SeasonalDecomposeConvolutionMultiplicative::getDeseasoned() const
+{
+    return getTrend() * getNoise();
+}
 
 std::unique_ptr<Common::SeasonalDecompose> Common::SeasonalDecomposeConvolutionMultiplicative::clone() const
 {

@@ -59,16 +59,14 @@ double Math::matrixDeterminant(boost::numeric::ublas::matrix<double> inputMatrix
 // Cholesky Decomposition
 boost::numeric::ublas::matrix<double> Math::choleskyDecomp(const boost::numeric::ublas::matrix<double> &inputMatrix)
 {
-    int dim = inputMatrix.size1();
-
+    const int dim = inputMatrix.size1();
     boost::numeric::ublas::matrix<double> outputMatrix(boost::numeric::ublas::zero_matrix<double>(dim,dim));
 
-    double sum;
     for (unsigned int i = 0; i < dim ; ++i)
     {
         for (unsigned int k = 0; k < i + 1; ++k)
         {
-            sum = 0;
+            double sum = 0;
             for (unsigned int j = 0; j < k; ++j)
             {
                 sum += outputMatrix(i,j) * outputMatrix(k,j);
@@ -169,7 +167,6 @@ void Math::RegressionModelAlgorithmCholesky::calibrate(std::vector<double> &coef
     const int dim = choleskyFactor.size1();
 
     // solve lower triangular system Lw=A*b for w by forward substitution (* = transposition)
-
     const boost::numeric::ublas::vector<double> dependentVariable(Math::stdVec2bstVec(dependentVariableValues));
     const boost::numeric::ublas::vector<double> productAb = prod(transposedIndiVal, dependentVariable);
 

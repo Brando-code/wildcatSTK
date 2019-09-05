@@ -46,7 +46,7 @@ BOOST_AUTO_TEST_SUITE(FormulaVariable)
         BOOST_CHECK_EQUAL(fva.evaluate(ds, d), expectedSpreadValue);
     }
 
-    BOOST_AUTO_TEST_CASE(FunctionalDeSeason_happyPath)
+    BOOST_AUTO_TEST_CASE(FunctionalDeSeason_happyPath, *utf::tolerance(1e-6))
     {
         Common::DataSet ds;
         loadDataSet(inputRelativePath + fileName, ds);
@@ -59,20 +59,17 @@ BOOST_AUTO_TEST_SUITE(FormulaVariable)
         Common::SeasonalDecomposeConvolutionAdditive sdcd(period);
         sdcd.decompose(ds.getTimeSeries(variable));
 
-        boost::gregorian::date d(2017, 3, 31);
-        double expectedDeSeasonedValue = (sdcd.getTrend() + sdcd.getNoise()).getValue(d);
-        BOOST_CHECK_EQUAL(fvfd.evaluate(ds, d), expectedDeSeasonedValue);
-        BOOST_CHECK_EQUAL(fvfd.getLastSeasonalCycle(ds).size(), period);
-
-        decompositionType = "multiplicative";
-        variable = "OV_UK_VISITORS_NSA";
-        const Common::FormulaVariableFunctionalDeSeason otherFvfd(variable, decompositionType, period);
-
-        Common::SeasonalDecomposeConvolutionMultiplicative sdcm(period);
-        sdcm.decompose(ds.getTimeSeries(variable));
-        expectedDeSeasonedValue = (sdcm.getTrend() + sdcm.getNoise()).getValue(d);
-
-        BOOST_CHECK_EQUAL(otherFvfd.evaluate(ds, d), expectedDeSeasonedValue);
+        const Common::TimeSeries expectedDeSeasoned = sdcd.getTrend() + sdcd.getNoise();
+        const Common::TimeSeries expectedSeason = sdcd.getSeason();
+        BOOST_CHECK(fvfd.compute(ds) == expectedDeSeasoned);
+        BOOST_CHECK(fvfd.getSeason(ds) == expectedSeason);
+        BOOST_TEST((fvfd.compute(ds) + fvfd.getSeason(ds)).getValues() == ds.getTimeSeries(variable).getValues(),
+                   tt::per_element());
     }
+/*
+    BOOST_AUTO_TEST_CASE(FunctionalRestoreSeason_happyPath)
+    {
 
+    }
+*/
 BOOST_AUTO_TEST_SUITE_END()

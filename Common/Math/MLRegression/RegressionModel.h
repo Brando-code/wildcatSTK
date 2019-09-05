@@ -38,7 +38,7 @@ namespace Math
     public:
         RegressionModelOLS();
         RegressionModelOLS(const RegressionModelOLS& other);
-        //RegressionModelOLS(const RegressionModelAlgorithm& regressionAlgorithm);
+
         void calibrate(std::vector<double> &coefficients,
                        const std::vector<double> &dependentVariableValues,
                        const boost::numeric::ublas::matrix<double> &independentVariableValues) const final;
@@ -48,6 +48,7 @@ namespace Math
     private:
         std::unique_ptr<Math::RegressionModelAlgorithm> m_algorithmPtr;
     };
+
 
 class RegressionModelAlgorithm
 {
@@ -61,7 +62,6 @@ public:
     virtual std::unique_ptr<Math::RegressionModelAlgorithm> clone() const = 0;
 };
 
-
 class RegressionModelAlgorithmMoorePenrose : public RegressionModelAlgorithm
 {
 public:
@@ -72,15 +72,15 @@ public:
     std::unique_ptr<Math::RegressionModelAlgorithm> clone() const final;
 };
 
-    class RegressionModelAlgorithmCholesky : public RegressionModelAlgorithm
-    {
-    public:
-        void calibrate(std::vector<double>& coefficients,
-                       const std::vector<double>& dependentVariableValues,
-                       const boost::numeric::ublas::matrix<double>& independentVariableValues) const final;
+class RegressionModelAlgorithmCholesky : public RegressionModelAlgorithm
+{
+public:
+    void calibrate(std::vector<double>& coefficients,
+                   const std::vector<double>& dependentVariableValues,
+                   const boost::numeric::ublas::matrix<double>& independentVariableValues) const final;
 
-        std::unique_ptr<Math::RegressionModelAlgorithm> clone() const final;
-    };
+    std::unique_ptr<Math::RegressionModelAlgorithm> clone() const final;
+};
 
 
 }

@@ -10,6 +10,7 @@
 
 namespace Common
 {
+    class TimeSeries;
     class DataSet;
     class SeasonalDecompose;
     class RestoreSeason;
@@ -34,12 +35,24 @@ namespace Common
         mutable Common::AlgebraicExpressionParser m_parser;
     };
 
-    class FormulaVariableFunctionalDeSeason : public FormulaVariable
+
+    class FormulaVariablePostProc
     {
     public:
-        FormulaVariableFunctionalDeSeason(const std::string& variableName, const std::string& decompositionType, unsigned int period);
-        double evaluate(const Common::DataSet& ds, const boost::gregorian::date& date) const final;
-        std::vector<double> getLastSeasonalCycle(const Common::DataSet &ds) const;
+        virtual Common::TimeSeries compute(const Common::DataSet& ds) const = 0;
+
+        virtual ~FormulaVariablePostProc() = default;
+    };
+
+    class FormulaVariableFunctionalDeSeason : public FormulaVariablePostProc
+    {
+    public:
+        FormulaVariableFunctionalDeSeason(const std::string& variableName,
+                                          const std::string& decompositionType,
+                                          unsigned int period);
+
+        Common::TimeSeries compute(const Common::DataSet& ds) const final;
+        Common::TimeSeries getSeason(const Common::DataSet& ds) const;
 
         void set(const std::string& variableName, const std::string& decompositionType, unsigned int period);
 
@@ -51,22 +64,32 @@ namespace Common
         void _decompose(const Common::DataSet& ds) const;
     };
 
-    class FormulaVariableFunctionalRestoreSeason : public FormulaVariable
+    class FormulaVariableFunctionalRestoreSeason : public FormulaVariablePostProc
     {
     public:
-        FormulaVariableFunctionalRestoreSeason(const std::string& variableName,
+        FormulaVariableFunctionalRestoreSeason(const std::string& seasonalVariableName,
+                                               const std::string& deSeasonedVariableName,
                                                const std::string& decompositionType,
-                                               const std::vector<double>& lastSeasonalCycle);
+                                               unsigned int period,
+                                               const Common::TimeSeries& seasonality);
 
-        double evaluate(const Common::DataSet& ds, const boost::gregorian::date& date) const final;
+        Common::TimeSeries compute(const Common::DataSet& ds) const final;
 
-        void set(const std::string& variableName, const std::string& decompositionType, const std::vector<double>& lastSeasonalCycle);
+        void set(const std::string& seasonalVariableName,
+                 const std::string& deSeasonedVariableName,
+                 const std::string& decompositionType,
+                 unsigned int period,
+                 const Common::TimeSeries& seasonality);
 
     private:
-        std::string m_variable;
+        std::string m_seasonalVariable, m_deSeasonedVariable;
+        boost::gregorian::date m_restoreStartDate;
         std::unique_ptr<Common::RestoreSeason> m_restorePtr;
         std::vector<double> m_lastSeasonalCycle;
+
+        std::vector<double> _getLastSeasonalCycle(const Common::TimeSeries& seasonality, unsigned int period);
     };
+
 
     class RestoreSeason
     {
