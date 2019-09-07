@@ -5,7 +5,6 @@
 #include "ConfigModelSpec.h"
 
 #include <utility>
-#include <boost/numeric/ublas/matrix.hpp>
 #include "../Types/DataSet.h"
 #include "../Types/TimeSeries.h"
 #include "../../Global/Mappings/FactoryMappings.h"
@@ -17,8 +16,8 @@
 Common::ConfigModelSpec::ConfigModelSpec(const Common::ConfigVariable &dependentVariable,
                         std::vector<Common::ConfigVariable> independentVariables) :
         m_dVariable(dependentVariable),
-        m_idVariables(std::move(independentVariables)),
-        m_coeff()
+        m_idVariables(std::move(independentVariables))
+        //m_coeff()
 {
     if (m_idVariables.empty())
         throw std::runtime_error("E: ConfigModelSpec::ConfigModelSpec : no drivers specified for dependent variable " +
@@ -56,7 +55,10 @@ bool Common::ConfigModelSpec::_equal(const Common::ConfigModelSpec &other) const
 Common::ConfigModelSpecRelative::ConfigModelSpecRelative(const Common::ConfigVariable &dependentVariable,
                                                          const std::vector<Common::ConfigVariable> &independentVariables,
                                                          const std::string &modelSubType, double multiplier) :
-        ConfigModelSpec(dependentVariable, independentVariables), m_multiplier(multiplier), m_modelSubType(modelSubType)
+        ConfigModelSpec(dependentVariable, independentVariables),
+        m_multiplier(multiplier),
+        m_modelSubType(modelSubType),
+        m_coeff(0)
 {
     //initialize m_modelPtr via factory
     m_modelPtr = Global::RelativeModelFactoryMapping::instance() -> getFactory(modelSubType) -> create();
@@ -122,16 +124,16 @@ void Common::ConfigModelSpecRelative::calibrate(const Common::DataSet &ds)
     const std::vector<double> transformedIndependentVariableValues = m_idVariables[0].getTransformedTimeSeriesValues(ds.getTimeSeries(m_idVariables[0].getBasename()));
     
     //delegate execution to m_modelPtr
-    m_coeff.clear();
+    //m_coeff.clear();
     m_modelPtr -> calibrate(m_coeff, transformedDependentVariableValues, transformedIndependentVariableValues);
 }
 
 double Common::ConfigModelSpecRelative::predict(const Common::DataSet &ds, unsigned int index) const
 {
-    if (m_coeff.empty())
+    if (m_coeff == 0)
         throw std::out_of_range("E: ConfigModelSpecRelative::predict : projections cannot be generated from un-calibrated models.");
 
-    const double scalar = m_multiplier * m_coeff[0];
+    const double scalar = m_multiplier * m_coeff; //m_coeff[0];
     const double transformedProjection = scalar * m_idVariables[0].getTransformedValue(ds.getTimeSeries(m_idVariables[0].getBasename()), index);
     return m_dVariable.getLevel(ds.getTimeSeries(m_dVariable.getBasename()), transformedProjection, index);
 }
@@ -157,24 +159,40 @@ bool Common::ConfigModelSpecRelative::operator!=(const Common::ConfigModelSpec &
 Common::ConfigModelSpecRegression::ConfigModelSpecRegression(const Common::ConfigVariable &dependentVariable,
                                                              const std::vector<Common::ConfigVariable> &independentVariables,
                                                              const std::string &modelSubType,
-                                                             const boost::gregorian::date &regressionStartDate) :
+                                                             const boost::gregorian::date &regressionStartDate,
+                                                             bool computeAnova):
         ConfigModelSpec(dependentVariable, independentVariables),
         m_startDate(regressionStartDate),
         m_modelSubType(modelSubType),
+        m_params(), // [AC] number of id variables + intercept
+        m_computeAnovaFlag(computeAnova),
         //Should be replaced by factory when more regression models are available
-        m_modelPtr(std::make_unique<Math::RegressionModelOLS>(Math::RegressionModelOLS())) {}
+        m_modelPtr(std::make_unique<Math::RegressionModelOLS>(Math::RegressionModelOLS()))
+{
+
+}
 
 Common::ConfigModelSpecRegression::ConfigModelSpecRegression(const Common::ConfigModelSpecRegression &other) :
         ConfigModelSpec(other.m_dVariable, other.m_idVariables),
         m_startDate(other.m_startDate),
         m_modelSubType(other.m_modelSubType),
-        m_modelPtr(other.m_modelPtr -> clone()) {}
+        m_params(other.m_params),
+        m_computeAnovaFlag(other.m_computeAnovaFlag),
+        m_modelPtr(other.m_modelPtr -> clone())
+{
+
+}
 
 Common::ConfigModelSpecRegression::ConfigModelSpecRegression(Common::ConfigModelSpecRegression &&other) :
         ConfigModelSpec(other.m_dVariable, other.m_idVariables),
         m_startDate(other.m_startDate),
         m_modelSubType(other.m_modelSubType),
-        m_modelPtr(std::move(other.m_modelPtr)) {}
+        m_params(other.m_params),
+        m_computeAnovaFlag(other.m_computeAnovaFlag),
+        m_modelPtr(std::move(other.m_modelPtr))
+{
+
+}
 
 Common::ConfigModelSpecRegression& Common::ConfigModelSpecRegression::operator=(const Common::ConfigModelSpecRegression &other)
 {
@@ -182,9 +200,10 @@ Common::ConfigModelSpecRegression& Common::ConfigModelSpecRegression::operator=(
     {
         m_dVariable = other.m_dVariable;
         m_idVariables = other.m_idVariables;
-        m_coeff = other.m_coeff;
+        m_params = other.m_params;
         m_startDate = other.m_startDate;
         m_modelSubType = other.m_modelSubType;
+        m_computeAnovaFlag = other.m_computeAnovaFlag;
         m_modelPtr = other.m_modelPtr -> clone();
     }
     return *this;
@@ -196,9 +215,10 @@ Common::ConfigModelSpecRegression& Common::ConfigModelSpecRegression::operator=(
     {
         m_dVariable = other.m_dVariable;
         m_idVariables = other.m_idVariables;
-        m_coeff = other.m_coeff;
+        m_params = other.m_params;
         m_startDate = other.m_startDate;
         m_modelSubType = other.m_modelSubType;
+        m_computeAnovaFlag = other.m_computeAnovaFlag;
         m_modelPtr = std::move(other.m_modelPtr);
     }
     return *this;
@@ -231,14 +251,19 @@ boost::gregorian::date Common::ConfigModelSpecRegression::getFirstValidRegressio
     return firstValidDate;
 }
 
-std::vector<double> Common::ConfigModelSpecRegression::_getTransformedValues(const Common::TimeSeries &ts,
-                                                                             const boost::gregorian::date &firstDate,
-                                                                             const Common::ConfigVariable &variable) const
+boost::numeric::ublas::vector<double> Common::ConfigModelSpecRegression::_getTransformedValues(const Common::TimeSeries &ts,
+                                                                                               const boost::gregorian::date &firstDate,
+                                                                                               const Common::ConfigVariable &variable) const
 {
     const unsigned long firstIndex = ts.getIndex(firstDate);
-    std::vector<double> rvs;
+    boost::numeric::ublas::vector<double> rvs(ts.length() - firstIndex);
+
+    unsigned long j = 0;
     for (unsigned long i = firstIndex; i < ts.length(); ++i)
-        rvs.push_back(variable.getTransformedValue(ts, i));
+    {
+        rvs(j) = variable.getTransformedValue(ts, i);
+        ++j;
+    }
 
     return rvs;
 }
@@ -249,7 +274,7 @@ void Common::ConfigModelSpecRegression::calibrate(const Common::DataSet &ds)
     const boost::gregorian::date firstValidDate = getFirstValidRegressionDate(ds);
 
     //construct array of transformed dependent variable values to be used by MLRegression
-    const std::vector<double> dVariableValuesForRegression =
+    const boost::numeric::ublas::vector<double> dVariableValuesForRegression =
             _getTransformedValues(ds.getTimeSeries(m_dVariable.getBasename()), firstValidDate, m_dVariable);
 
     //construct matrix of transformed independent variable values to be used by MLRegression
@@ -259,33 +284,32 @@ void Common::ConfigModelSpecRegression::calibrate(const Common::DataSet &ds)
 
     for (unsigned long i = 0; i < nCols; ++i)
     {
-        const std::vector<double> idVariableTransformedValues =
+        const boost::numeric::ublas::vector<double> idVariableTransformedValues =
                 _getTransformedValues(ds.getTimeSeries(m_idVariables.at(i).getBasename()), firstValidDate, m_idVariables.at(i));
 
-        for (unsigned long j = 0; j < nRows; ++j)
-        {
-            //fill in matrix with values
-            const double value = idVariableTransformedValues.at(j);
-            idVariableValuesForRegression(j, i) = value;
-        }
+        boost::numeric::ublas::column(idVariableValuesForRegression, i) = idVariableTransformedValues;
     }
 
     //delegate execution to RegressionModelObject
-    m_coeff.clear();
-    m_modelPtr -> calibrate(m_coeff, dVariableValuesForRegression, idVariableValuesForRegression);
+    boost::numeric::ublas::vector<double> params(idVariableValuesForRegression.size2());
+    m_modelPtr -> calibrate(params, dVariableValuesForRegression, idVariableValuesForRegression);
+    m_params = Common::bstVec2stdVec(params);
+
+    if (m_computeAnovaFlag)
+        m_modelPtr -> computeANOVA();
 }
 
 double Common::ConfigModelSpecRegression::predict(const Common::DataSet &ds, unsigned int index) const
 {
-    if (m_coeff.empty())
+    if (m_params.empty())
         throw std::out_of_range("E: ConfigModelSpecRegression::predict : projections cannot be generated from un-calibrated models.");
 
-    const double intercept = m_coeff.back();
+    const double intercept = m_params.back();
     double dTransformedVariable = 0;
     for (unsigned int i = 0; i < m_idVariables.size(); ++i)
     {
         const Common::TimeSeries ts = ds.getTimeSeries(m_idVariables.at(i).getBasename());
-        dTransformedVariable += m_coeff.at(i) * m_idVariables.at(i).getTransformedValue(ts, index);
+        dTransformedVariable += m_params.at(i) * m_idVariables.at(i).getTransformedValue(ts, index);
     }
 
     dTransformedVariable += intercept;
@@ -295,7 +319,16 @@ double Common::ConfigModelSpecRegression::predict(const Common::DataSet &ds, uns
 
 std::vector<double> Common::ConfigModelSpecRegression::getCalibratedCoefficients() const
 {
-    return m_coeff;
+    return m_params;
+}
+
+Math::ANOVA Common::ConfigModelSpecRegression::getANOVASummary() const
+{
+    if (!m_computeAnovaFlag)
+        std::cerr << "Common::ConfigModelSpecRegression::getANOVASummary : Diagnostics is switched off for model " +
+                     m_dVariable.getBasename() + ". Empty ANOVA may be returned..." << std::endl;
+
+    return m_modelPtr -> getANOVA();
 }
 
 std::unique_ptr<Common::ConfigModelSpec> Common::ConfigModelSpecRegression::clone() const

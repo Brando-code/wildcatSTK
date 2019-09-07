@@ -2,29 +2,29 @@
 // Created by Alberto Campi on 2019-08-03.
 //
 
-/* AUXILIARY FUNCTIONS
- *--------------------------------------------------------------------------------------------------------------------*/
+
 #include "RegressionModel.h"
+#include "../Statistics/Stat.h"
 #include <boost/numeric/ublas/lu.hpp>
 #include <boost/qvm/mat_operations.hpp>
 #include <boost/qvm/mat_traits_array.hpp>
 
+/* AUXILIARY FUNCTIONS
+ *--------------------------------------------------------------------------------------------------------------------*/
 
 // Matrix inversion
-boost::numeric::ublas::matrix<double> Math::inverseBST (const boost::numeric::ublas::matrix<double> &inputMatrix)
+boost::numeric::ublas::matrix<double> Math::computeInverseMatrix (boost::numeric::ublas::matrix<double> inputMatrix)
 {
-    boost::numeric::ublas::matrix<double> tempInputMatrix(inputMatrix);
-
-    boost::numeric::ublas::matrix<double> invertedMatrix = boost::numeric::ublas::identity_matrix<double>(inputMatrix.size1());
+    boost::numeric::ublas::matrix<double> inverseMatrix = boost::numeric::ublas::identity_matrix<double>(inputMatrix.size1());
     boost::numeric::ublas::permutation_matrix<size_t> permutationMatrix(inputMatrix.size1());
-    lu_factorize(tempInputMatrix, permutationMatrix);
-    lu_substitute(tempInputMatrix, permutationMatrix, invertedMatrix);
+    lu_factorize(inputMatrix, permutationMatrix);
+    lu_substitute(inputMatrix, permutationMatrix, inverseMatrix);
 
-    return invertedMatrix;
+    return inverseMatrix;
 }
 
 // Matrix determinant sign
-int Math::determinantSign(const boost::numeric::ublas::permutation_matrix<std::size_t> &permutationMatrix)
+int Math::computeDeterminantSign(const boost::numeric::ublas::permutation_matrix<std::size_t> &permutationMatrix)
 {
     int detSign = 1.;
     for (int i = 0; i < permutationMatrix.size(); ++i)
@@ -36,7 +36,7 @@ int Math::determinantSign(const boost::numeric::ublas::permutation_matrix<std::s
 }
 
 // Matrix determinant
-double Math::matrixDeterminant(boost::numeric::ublas::matrix<double> inputMatrix)
+double Math::computeMatrixDeterminant(boost::numeric::ublas::matrix<double> inputMatrix)
 {
     boost::numeric::ublas::permutation_matrix<std::size_t> permutationMatrix(inputMatrix.size1());
 
@@ -51,16 +51,16 @@ double Math::matrixDeterminant(boost::numeric::ublas::matrix<double> inputMatrix
         {
             determinant *= inputMatrix(i, i);
         }
-        determinant *= determinantSign(permutationMatrix);
+        determinant *= computeDeterminantSign(permutationMatrix);
     }
     return determinant;
 }
 
 // Cholesky Decomposition
-boost::numeric::ublas::matrix<double> Math::choleskyDecomp(const boost::numeric::ublas::matrix<double> &inputMatrix)
+boost::numeric::ublas::matrix<double> Math::choleskyDecompose(const boost::numeric::ublas::matrix<double> &inputMatrix)
 {
     const int dim = inputMatrix.size1();
-    boost::numeric::ublas::matrix<double> outputMatrix(boost::numeric::ublas::zero_matrix<double>(dim,dim));
+    boost::numeric::ublas::matrix<double> outputMatrix(boost::numeric::ublas::zero_matrix<double>(dim, dim));
 
     for (unsigned int i = 0; i < dim ; ++i)
     {
@@ -79,28 +79,51 @@ boost::numeric::ublas::matrix<double> Math::choleskyDecomp(const boost::numeric:
     return outputMatrix;
 }
 
-// From std vector to Boost vector conversation
-boost::numeric::ublas::vector<double> Math::stdVec2bstVec (const std::vector<double> &inputVector)
-{
-    boost::numeric::ublas::vector<double> outputVector(inputVector.size());
-    for (unsigned long i = 0; i < outputVector.size(); ++i)
-        outputVector(i) = inputVector.at(i);
-
-    return outputVector;
-}
-
-// From Boost vector to std vector conversation
-std::vector<double> Math::bstVec2stdVec (const boost::numeric::ublas::vector<double> &inputVector)
-{
-    std::vector<double> outputVector;
-    for (unsigned long i = 0; i < inputVector.size(); ++i)
-        outputVector.push_back(inputVector(i));
-
-    return outputVector;
-}
 
 /*REGRESSION MODEL METHODS
  * --------------------------------------------------------------------------------------------------------*/
+Math::ANOVA Math::RegressionModel::getANOVA() const
+{
+    return m_anova;
+}
+
+void Math::RegressionModel::_ANOVATotal()
+{
+    Math::UnivariateStat acc;
+    for (const auto& value : m_depVariableVals)
+        acc.add(value);
+
+    m_anova.totalMean = acc.mean();
+
+    m_anova.sampleSize = m_depVariableVals.size();
+    m_anova.totalDoF = m_anova.sampleSize - 1;
+    m_anova.totalMSEVariance = acc.variance() * m_depVariableVals.size() / m_anova.totalDoF;
+}
+
+void Math::RegressionModel::_ANOVAResiduals()
+{
+    m_anova.fittedValues = boost::numeric::ublas::prod(m_indepVariableVals, m_coefficients);
+    m_anova.residuals = m_depVariableVals - m_anova.fittedValues;
+
+    m_anova.residualDoF = m_anova.sampleSize - m_indepVariableVals.size2();
+    m_anova.residualMSEVariance = boost::numeric::ublas::inner_prod(m_anova.residuals, m_anova.residuals) / m_anova.residualDoF;
+}
+
+void Math::RegressionModel::_ANOVAModel()
+{
+    const boost::numeric::ublas::vector<double> modelError = m_anova.fittedValues -
+                                                boost::numeric::ublas::vector<double>(m_anova.fittedValues.size(), m_anova.totalMean);
+
+    m_anova.modelDoF = m_indepVariableVals.size2() - 1;
+    m_anova.modelMSEVariance = boost::numeric::ublas::inner_prod(modelError, modelError) / m_anova.modelDoF;
+}
+
+void Math::RegressionModel::_ANOVARSquared()
+{
+    m_anova.adjRSquared = 1 - m_anova.residualMSEVariance / m_anova.totalMSEVariance;
+    m_anova.RSquared = 1 - (m_anova.residualMSEVariance * m_anova.residualDoF) / (m_anova.totalMSEVariance * m_anova.totalDoF);
+}
+
 Math::RegressionModelOLS::RegressionModelOLS() :
     m_algorithmPtr(Math::RegressionModelAlgorithmCholesky().clone())
 {
@@ -113,14 +136,33 @@ Math::RegressionModelOLS::RegressionModelOLS(const Math::RegressionModelOLS &oth
 
 }
 
-void Math::RegressionModelOLS::calibrate(std::vector<double> &coefficients, const std::vector<double> &dependentVariableValues,
+void Math::RegressionModelOLS::calibrate(boost::numeric::ublas::vector<double> &coefficients,
+                                         const boost::numeric::ublas::vector<double> &dependentVariableValues,
                                          const boost::numeric::ublas::matrix<double> &independentVariableValues) const
 {
     if (dependentVariableValues.size() == independentVariableValues.size1() and independentVariableValues.size1() > 2)
+    {
         m_algorithmPtr -> calibrate(coefficients, dependentVariableValues, independentVariableValues);
+        m_coefficients = coefficients, m_depVariableVals = dependentVariableValues, m_indepVariableVals = independentVariableValues;
+    }
     else
         throw std::runtime_error("Math::RegressionModelOLS::calibrate : "
                                  "at least two observations are needed for regression model to run.");
+}
+
+void Math::RegressionModelOLS::computeANOVA()
+{
+    //Compute ANOVA for dependent variable (total)
+    _ANOVATotal();
+
+    //Compute ANOVA for residuals
+    _ANOVAResiduals();
+
+    //Compute ANOVA for predictor (fitted model)
+    _ANOVAModel();
+
+    //Compute R-squared measures
+    _ANOVARSquared();
 }
 
 std::unique_ptr<Math::RegressionModel> Math::RegressionModelOLS::clone() const
@@ -129,26 +171,23 @@ std::unique_ptr<Math::RegressionModel> Math::RegressionModelOLS::clone() const
 }
 //Regression by Moore-Penrose method
 
-void Math::RegressionModelAlgorithmMoorePenrose::calibrate(std::vector<double> &coefficients,
-                                               const std::vector<double> &dependentVariableValues,
-                                               const boost::numeric::ublas::matrix<double> &independentVariableValues) const
+void Math::RegressionModelAlgorithmMoorePenrose::calibrate(boost::numeric::ublas::vector<double> &coefficients,
+                                                           const boost::numeric::ublas::vector<double> &dependentVariableValues,
+                                                           const boost::numeric::ublas::matrix<double> &independentVariableValues) const
 {
-    coefficients.clear();
-
     const boost::numeric::ublas::matrix<double> transposedIndiVal(boost::numeric::ublas::trans(independentVariableValues));
-    const boost::numeric::ublas::matrix<double> productTransIndiVal(prod(transposedIndiVal, independentVariableValues));
-
-    // Invertible controller
-    double determinantMatrix(Math::matrixDeterminant(productTransIndiVal));
+    const boost::numeric::ublas::matrix<double> productTransIndiVal(boost::numeric::ublas::prod(transposedIndiVal,
+                                                                                                independentVariableValues));
+    // Inversion check
+    const double determinantMatrix = Math::computeMatrixDeterminant(productTransIndiVal);
     if (determinantMatrix == 0.)
         throw std::runtime_error("Error: matrix is not invertible.");
 
-    const boost::numeric::ublas::matrix<double> inverseProduct(inverseBST(productTransIndiVal));
-    const boost::numeric::ublas::matrix<double> productInverseTransposed(prod(inverseProduct, transposedIndiVal));
-    const boost::numeric::ublas::vector<double> dependentVariable = Math::stdVec2bstVec(dependentVariableValues);
+    const boost::numeric::ublas::matrix<double> inverseProduct(computeInverseMatrix(productTransIndiVal));
+    const boost::numeric::ublas::matrix<double> productInverseTransposed(boost::numeric::ublas::prod(inverseProduct,
+                                                                                                     transposedIndiVal));
 
-    const boost::numeric::ublas::vector<double>  temp_coefficients(prod(productInverseTransposed, dependentVariable));
-    coefficients = Math::bstVec2stdVec(temp_coefficients);
+    coefficients = boost::numeric::ublas::prod(productInverseTransposed, dependentVariableValues);
 }
 
 std::unique_ptr<Math::RegressionModelAlgorithm> Math::RegressionModelAlgorithmMoorePenrose::clone() const
@@ -156,19 +195,19 @@ std::unique_ptr<Math::RegressionModelAlgorithm> Math::RegressionModelAlgorithmMo
     return std::make_unique<RegressionModelAlgorithmMoorePenrose> (*this);
 }
 
-void Math::RegressionModelAlgorithmCholesky::calibrate(std::vector<double> &coefficients,
-                                                       const std::vector<double> &dependentVariableValues,
+void Math::RegressionModelAlgorithmCholesky::calibrate(boost::numeric::ublas::vector<double> &coefficients,
+                                                       const boost::numeric::ublas::vector<double> &dependentVariableValues,
                                                        const boost::numeric::ublas::matrix<double> &independentVariableValues) const
 {
     const boost::numeric::ublas::matrix<double> transposedIndiVal(boost::numeric::ublas::trans(independentVariableValues));
-    const boost::numeric::ublas::matrix<double> productTransIndiVal = prod(transposedIndiVal, independentVariableValues);
-    const boost::numeric::ublas::matrix<double> choleskyFactor(choleskyDecomp(productTransIndiVal));
+    const boost::numeric::ublas::matrix<double> productTransIndiVal(boost::numeric::ublas::prod(transposedIndiVal,
+                                                                    independentVariableValues));
+    const boost::numeric::ublas::matrix<double> choleskyFactor(Math::choleskyDecompose(productTransIndiVal));
 
     const int dim = choleskyFactor.size1();
 
     // solve lower triangular system Lw=A*b for w by forward substitution (* = transposition)
-    const boost::numeric::ublas::vector<double> dependentVariable(Math::stdVec2bstVec(dependentVariableValues));
-    const boost::numeric::ublas::vector<double> productAb = prod(transposedIndiVal, dependentVariable);
+    const boost::numeric::ublas::vector<double> productAb(boost::numeric::ublas::prod(transposedIndiVal, dependentVariableValues));
 
     boost::numeric::ublas::vector<double> omegaVector(choleskyFactor.size2());
     for (unsigned int i = 0; i < dim; ++i)
@@ -178,24 +217,20 @@ void Math::RegressionModelAlgorithmCholesky::calibrate(std::vector<double> &coef
         {
             sum += choleskyFactor(i,j) * omegaVector(j);
         }
-
         omegaVector(i) = (productAb(i) - sum) / choleskyFactor(i,i);
     }
 
     // solve upper triangular system L*x=w for x by backward substitution
-    const boost::numeric::ublas::matrix<double>transpCholeskyFactor(trans(choleskyFactor));
-    boost::numeric::ublas::vector<double> xVector(dim);
+    const boost::numeric::ublas::matrix<double> transpCholeskyFactor(boost::numeric::ublas::trans(choleskyFactor));
     for (int i = dim - 1; i >= 0 ; --i)
     {
         double sum = 0;
         for (unsigned int j = i + 1; j < dim ; ++j)
         {
-            sum += transpCholeskyFactor(i,j) * xVector(j);
+            sum += transpCholeskyFactor(i,j) * coefficients(j);
         }
-        xVector(i) = (omegaVector(i) - sum) / transpCholeskyFactor(i,i);
+        coefficients(i) = (omegaVector(i) - sum) / transpCholeskyFactor(i,i);
     }
-
-    coefficients = Math::bstVec2stdVec(xVector);
 }
 
 std::unique_ptr<Math::RegressionModelAlgorithm> Math::RegressionModelAlgorithmCholesky::clone() const

@@ -13,7 +13,7 @@ namespace Math
     class RelativeModel
     {
     public:
-        virtual void calibrate(std::vector<double> &coefficients,
+        virtual void calibrate(double &coefficient,
                                const std::vector<double> &dependentVariableValues,
                                const std::vector<double> &independentVariableValues) const = 0;
 
@@ -25,7 +25,7 @@ namespace Math
     class RelativeGrowthModel : public RelativeModel
     {
     public:
-        void calibrate(std::vector<double> &coefficients,
+        void calibrate(double &coefficient,
                        const std::vector<double> &dependentVariableValues,
                        const std::vector<double> &independentVariableValues) const final;
 
@@ -35,7 +35,7 @@ namespace Math
     class RelativeVolatilityModel : public RelativeModel
     {
     public:
-        void calibrate(std::vector<double> &coefficients,
+        void calibrate(double &coefficient,
                        const std::vector<double> &dependentVariableValues,
                        const std::vector<double> &independentVariableValues) const final;
 

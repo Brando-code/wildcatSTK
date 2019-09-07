@@ -7,11 +7,10 @@
 
 
 //RelativeGrowthModel class implementation
-void Math::RelativeGrowthModel::calibrate(std::vector<double>& coefficients, const std::vector<double>& dependentVariableValues,
+void Math::RelativeGrowthModel::calibrate(double &coefficient, const std::vector<double>& dependentVariableValues,
                                           const std::vector<double>& independentVariableValues) const
 {
-    coefficients.clear();
-    coefficients.push_back(1.0);
+    coefficient = 1.0;
 }
 
 std::unique_ptr<Math::RelativeModel> Math::RelativeGrowthModel::clone() const
@@ -21,7 +20,7 @@ std::unique_ptr<Math::RelativeModel> Math::RelativeGrowthModel::clone() const
 
 
 //RelativeVolatilityModel class implementation
-void Math::RelativeVolatilityModel::calibrate(std::vector<double> &coefficients, const std::vector<double> &dependentVariableValues,
+void Math::RelativeVolatilityModel::calibrate(double &coefficient, const std::vector<double> &dependentVariableValues,
                                               const std::vector<double> &independentVariableValues) const
 {
     Math::UnivariateStat dVar, idVar;
@@ -31,8 +30,7 @@ void Math::RelativeVolatilityModel::calibrate(std::vector<double> &coefficients,
     for (const auto& val: independentVariableValues)
         idVar.add(val);
 
-    coefficients.clear();
-    coefficients.push_back(idVar.stdDev() / dVar.stdDev());
+    coefficient = idVar.stdDev() / dVar.stdDev();
 }
 
 std::unique_ptr<Math::RelativeModel> Math::RelativeVolatilityModel::clone() const

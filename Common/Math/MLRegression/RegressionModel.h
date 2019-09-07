@@ -12,25 +12,62 @@
 
 namespace Math
 {
-    boost::numeric::ublas::matrix<double> inverseBST (const boost::numeric::ublas::matrix<double> &inputMatrix);
-    int determinantSign (const boost::numeric::ublas::permutation_matrix<std::size_t> &permutationMatrix);
-    double matrixDeterminant (boost::numeric::ublas::matrix<double> inputMatrix);
-    boost::numeric::ublas::matrix<double> choleskyDecomp(const boost::numeric::ublas::matrix<double> &inputMatrix);
-    boost::numeric::ublas::vector<double> stdVec2bstVec (const std::vector<double> &inputVector);
-    std::vector<double> bstVec2stdVec (const boost::numeric::ublas::vector<double> &inputVector);
+    boost::numeric::ublas::matrix<double> computeInverseMatrix (boost::numeric::ublas::matrix<double> inputMatrix);
+    int computeDeterminantSign (const boost::numeric::ublas::permutation_matrix<std::size_t> &permutationMatrix);
+    double computeMatrixDeterminant (boost::numeric::ublas::matrix<double> inputMatrix);
+    boost::numeric::ublas::matrix<double> choleskyDecompose(const boost::numeric::ublas::matrix<double> &inputMatrix);
+
+
+    struct SummaryStatistic
+    {
+        double stdErr;
+        double tRatio;
+        double pValue;
+    };
+
+    struct ANOVA
+    {
+        std::vector<Math::SummaryStatistic> coefficientSummaryStat;
+
+        boost::numeric::ublas::vector<double> fittedValues;
+        boost::numeric::ublas::vector<double> residuals;
+
+        double sampleSize;
+        double residualMSEVariance;
+        double residualDoF;
+        double modelMSEVariance;
+        double modelDoF;
+        double totalMSEVariance;
+        double totalMean;
+        double totalDoF;
+        double RSquared;
+        double adjRSquared;
+    };
 
     class RegressionModelAlgorithm;
 
     class RegressionModel
     {
     public:
-        virtual void calibrate(std::vector<double> &coefficients,
-                               const std::vector<double> &dependentVariableValues,
+        virtual void calibrate(boost::numeric::ublas::vector<double> &coefficients,
+                               const boost::numeric::ublas::vector<double> &dependentVariableValues,
                                const boost::numeric::ublas::matrix<double> &independentVariableValues) const = 0;
+        virtual void computeANOVA() = 0;
+        Math::ANOVA getANOVA() const;
 
         virtual std::unique_ptr<Math::RegressionModel> clone() const = 0;
 
         virtual ~RegressionModel() = default;
+
+    protected:
+        mutable boost::numeric::ublas::vector<double> m_coefficients, m_depVariableVals;
+        mutable boost::numeric::ublas::matrix<double> m_indepVariableVals;
+        Math::ANOVA m_anova;
+
+        void _ANOVATotal();
+        void _ANOVAResiduals();
+        void _ANOVAModel();
+        void _ANOVARSquared();
     };
 
     class RegressionModelOLS : public RegressionModel
@@ -39,9 +76,10 @@ namespace Math
         RegressionModelOLS();
         RegressionModelOLS(const RegressionModelOLS& other);
 
-        void calibrate(std::vector<double> &coefficients,
-                       const std::vector<double> &dependentVariableValues,
+        void calibrate(boost::numeric::ublas::vector<double> &coefficients,
+                       const boost::numeric::ublas::vector<double> &dependentVariableValues,
                        const boost::numeric::ublas::matrix<double> &independentVariableValues) const final;
+        void computeANOVA() final;
 
         std::unique_ptr<Math::RegressionModel> clone() const final;
 
@@ -53,9 +91,9 @@ namespace Math
 class RegressionModelAlgorithm
 {
 public:
-    virtual void calibrate(std::vector<double>& coefficients,
-                           const std::vector<double>& dependentVariableValues,
-                           const boost::numeric::ublas::matrix<double>& independentVariableValues) const = 0;
+    virtual void calibrate(boost::numeric::ublas::vector<double> &coefficients,
+                           const boost::numeric::ublas::vector<double> &dependentVariableValues,
+                           const boost::numeric::ublas::matrix<double> &independentVariableValues) const = 0;
 
     virtual ~RegressionModelAlgorithm() = default;
 
@@ -65,9 +103,9 @@ public:
 class RegressionModelAlgorithmMoorePenrose : public RegressionModelAlgorithm
 {
 public:
-    void calibrate(std::vector<double>& coefficients,
-                   const std::vector<double>& dependentVariableValues,
-                   const boost::numeric::ublas::matrix<double>& independentVariableValues) const final;
+    void calibrate(boost::numeric::ublas::vector<double> &coefficients,
+                   const boost::numeric::ublas::vector<double> &dependentVariableValues,
+                   const boost::numeric::ublas::matrix<double> &independentVariableValues) const final;
 
     std::unique_ptr<Math::RegressionModelAlgorithm> clone() const final;
 };
@@ -75,9 +113,9 @@ public:
 class RegressionModelAlgorithmCholesky : public RegressionModelAlgorithm
 {
 public:
-    void calibrate(std::vector<double>& coefficients,
-                   const std::vector<double>& dependentVariableValues,
-                   const boost::numeric::ublas::matrix<double>& independentVariableValues) const final;
+    void calibrate(boost::numeric::ublas::vector<double> &coefficients,
+                   const boost::numeric::ublas::vector<double> &dependentVariableValues,
+                   const boost::numeric::ublas::matrix<double> &independentVariableValues) const final;
 
     std::unique_ptr<Math::RegressionModelAlgorithm> clone() const final;
 };

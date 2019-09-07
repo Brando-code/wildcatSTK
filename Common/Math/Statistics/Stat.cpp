@@ -12,7 +12,10 @@ void Math::checkDivisionByZero(double denominator)
 }
 
 Math::MultivariateStat::MultivariateStat(unsigned int dimension) : m_dim(dimension), m_counter(0), m_sumOfRVs(dimension),
-                                     m_sumOfCrossProdRVs(dimension, dimension, 0) {}
+                                     m_sumOfCrossProdRVs(dimension, dimension, 0)
+{
+
+}
 
 void Math::MultivariateStat::add(const std::vector<double>& randomVariables)
 {
@@ -119,7 +122,10 @@ boost::numeric::ublas::matrix<double> Math::MultivariateStat::correlation() cons
 }
 
 
-Math::UnivariateStat::UnivariateStat() : m_counter(0), m_sumOfRV(0), m_sumOfSquaredRV(0) {}
+Math::UnivariateStat::UnivariateStat() : m_counter(0), m_sumOfRV(0), m_sumOfSquaredRV(0)
+{
+
+}
 
 void Math::UnivariateStat::add(double x)
 {

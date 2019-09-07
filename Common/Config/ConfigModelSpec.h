@@ -8,7 +8,9 @@
 #include <memory>
 #include <vector>
 #include <boost/date_time/gregorian/gregorian.hpp>
+#include <boost/numeric/ublas/matrix.hpp>
 #include "ConfigVariable.h"
+#include "../Math/MLRegression/RegressionModel.h"
 
 
 namespace Math
@@ -43,7 +45,7 @@ namespace Common
     protected:
         Common::ConfigVariable m_dVariable;
         std::vector<Common::ConfigVariable> m_idVariables;
-        std::vector<double> m_coeff;
+        //std::vector<double> m_coeff;
 
         bool _equal(const Common::ConfigModelSpec& other) const;
     };
@@ -76,6 +78,7 @@ namespace Common
         std::unique_ptr<Math::RelativeModel> m_modelPtr;
         double m_multiplier;
         std::string m_modelSubType;
+        double m_coeff;
     };
 
 
@@ -85,7 +88,8 @@ namespace Common
         ConfigModelSpecRegression(const Common::ConfigVariable &dependentVariable,
                                   const std::vector<Common::ConfigVariable> &independentVariables,
                                   const std::string &modelSubType,
-                                  const boost::gregorian::date &regressionStartDate);
+                                  const boost::gregorian::date &regressionStartDate,
+                                  bool computeAnova = true);
         ConfigModelSpecRegression(const Common::ConfigModelSpecRegression& other);
         ConfigModelSpecRegression& operator=(const Common::ConfigModelSpecRegression& other);
         ConfigModelSpecRegression(Common::ConfigModelSpecRegression&& other);
@@ -95,6 +99,7 @@ namespace Common
 
         void calibrate(const Common::DataSet &ds) final;
         double predict(const Common::DataSet &ds, unsigned int index) const final;
+        Math::ANOVA getANOVASummary() const;
 
         boost::gregorian::date getFirstValidRegressionDate(const Common::DataSet &ds) const;
         std::vector<double> getCalibratedCoefficients() const;
@@ -108,10 +113,12 @@ namespace Common
         std::unique_ptr<Math::RegressionModel> m_modelPtr;
         boost::gregorian::date m_startDate;
         std::string m_modelSubType;
+        std::vector<double> m_params;
+        bool m_computeAnovaFlag;
 
-        std::vector<double> _getTransformedValues(const Common::TimeSeries& ts,
-                const boost::gregorian::date& firstDate,
-                const Common::ConfigVariable& variable) const;
+        boost::numeric::ublas::vector<double> _getTransformedValues(const Common::TimeSeries& ts,
+                                                                    const boost::gregorian::date& firstDate,
+                                                                    const Common::ConfigVariable& variable) const;
     };
 
 }

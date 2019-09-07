@@ -63,11 +63,10 @@ BOOST_AUTO_TEST_SUITE(Statistics)
         const boost::numeric::ublas::matrix<double> actualCov = s.covariance();
         const boost::numeric::ublas::matrix<double> actualCorr = s.correlation();
         for (unsigned int i = 0; i < statisticsDimension; ++i)
-            for (unsigned int j = 0; j < statisticsDimension; ++j)
-            {
-                BOOST_TEST(actualCov(i, j) == expCovContainer[i][j]);
-                BOOST_TEST(actualCorr(i, j) == expCorrContainer[i][j]);
-            }
+        {
+            BOOST_TEST(boost::numeric::ublas::row(actualCov, i) == expCovContainer[i], tt::per_element());
+            BOOST_TEST(boost::numeric::ublas::row(actualCorr, i) == expCorrContainer[i], tt::per_element());
+        }
     }
 
     BOOST_AUTO_TEST_CASE(UnivariateStat_Mean_Variance_HappyPath, *utf::tolerance(tol))
@@ -105,11 +104,10 @@ BOOST_AUTO_TEST_SUITE(Relative)
             rhsS.add(it);
 
         const double expectedParameter = rhsS.stdDev() / lhsS.stdDev();
-        std::vector<double> coeffs;
+        double coeff;
         Math::RelativeVolatilityModel mdl;
-        mdl.calibrate(coeffs, lhsData, rhsData);
-        BOOST_CHECK_EQUAL(coeffs.size(), 1);
-        BOOST_CHECK_EQUAL(coeffs[0], expectedParameter);
+        mdl.calibrate(coeff, lhsData, rhsData);
+        BOOST_CHECK_EQUAL(coeff, expectedParameter);
     }
 
 BOOST_AUTO_TEST_SUITE_END()
@@ -297,11 +295,13 @@ BOOST_AUTO_TEST_SUITE(MLRegression)
             }
 
             // Dependent variables vector loader with percentage values
-            unsigned int indexY = m_ds.getTimeSeries(m_dVarName).getIndex(firstValidDate);
-            std::vector<double> vectorY;
+            const unsigned int indexY = m_ds.getTimeSeries(m_dVarName).getIndex(firstValidDate);
+            boost::numeric::ublas::vector<double> vectorY(m_ds.getTimeSeries(m_dVarName).length() - indexY - 1);
+            unsigned j = 0;
             for (unsigned int i = indexY + 1; i < m_ds.getTimeSeries(m_dVarName).length(); ++i)
             {
-                vectorY.push_back(percentageValuesCalc(m_ds, m_dVarName, i));
+                vectorY(j) = percentageValuesCalc(m_ds, m_dVarName, i);
+                ++j;
             }
 
             // Independent values matrix loader with percentage values
@@ -310,7 +310,7 @@ BOOST_AUTO_TEST_SUITE(MLRegression)
             for (auto it = m_idVarNames.cbegin(); it < m_idVarNames.cend(); ++it)
             {
                 unsigned int index = m_ds.getTimeSeries(*it).getIndex(firstValidDate);
-                for (int i = 0; i < vectorY.size(); ++i)
+                for (unsigned int i = 0; i < vectorY.size(); ++i)
                 {
                     matrixXn(i, column) = percentageValuesCalc(m_ds, *it, index + 1);
                     ++index;
@@ -325,10 +325,10 @@ BOOST_AUTO_TEST_SUITE(MLRegression)
         Common::DataSet m_ds;
         std::string m_fileName, m_dVarName;
         std::vector<std::string> m_idVarNames;
-        std::vector<double> m_dVar;
+        boost::numeric::ublas::vector<double> m_dVar;
         boost::numeric::ublas::matrix<double> m_idVars;
     };
-
+/*
     // Matrix reader
     void readMatrix (const boost::numeric::ublas::matrix<double>& matrix)
     {
@@ -341,7 +341,7 @@ BOOST_AUTO_TEST_SUITE(MLRegression)
             std::cout << std::endl;
         }
     }
-
+*/
     BOOST_AUTO_TEST_CASE(MatrixDeterminantTest)
     {
         boost::numeric::ublas::matrix<double> inputMatrix(3, 3);
@@ -350,7 +350,7 @@ BOOST_AUTO_TEST_SUITE(MLRegression)
         inputMatrix(1, 0) = 2.; inputMatrix(1, 1) = -1.; inputMatrix(1, 2) = 1.;
         inputMatrix(2, 0) = 1.; inputMatrix(2, 1) = 1.; inputMatrix(2, 2) = 2.;
 
-        double matrixDeterminant(Math::matrixDeterminant(inputMatrix));
+        double matrixDeterminant(Math::computeMatrixDeterminant(inputMatrix));
 
         double expectedDeterminant = -3.;
 
@@ -368,7 +368,7 @@ BOOST_AUTO_TEST_SUITE(MLRegression)
         /*std::cout << "The input matrix is:" << std::endl;
         readMatrix(inputMatrix);*/
 
-        boost::numeric::ublas::matrix<double> invertedMatrix(Math::inverseBST(inputMatrix));
+        boost::numeric::ublas::matrix<double> invertedMatrix(Math::computeInverseMatrix(inputMatrix));
 
         /*std::cout << "The inverted matrix is:" << std::endl;
         readMatrix(invertedMatrix);*/
@@ -380,10 +380,8 @@ BOOST_AUTO_TEST_SUITE(MLRegression)
         expectedMatrix(2, 0) = -1.; expectedMatrix(2, 1) = 0.; expectedMatrix(2, 2) = 1.;
 
         for (unsigned int i = 0; i < expectedMatrix.size1(); ++i)
-            for (unsigned int j = 0; j < expectedMatrix.size2(); ++j)
-            {
-                BOOST_TEST(invertedMatrix(i, j) == expectedMatrix(i, j));
-            }
+            BOOST_TEST(boost::numeric::ublas::row(invertedMatrix, i) == boost::numeric::ublas::row(expectedMatrix, i),
+                       tt::per_element());
     }
 
     BOOST_AUTO_TEST_CASE(CholeskyDecompositionTest, *utf::tolerance(1e-4))
@@ -399,7 +397,7 @@ BOOST_AUTO_TEST_SUITE(MLRegression)
         /*std::cout << "The input matrix is:" << std::endl;
         readMatrix(inputMatrix);*/
 
-        boost::numeric::ublas::matrix<double> factorizedMatrix(Math::choleskyDecomp(inputMatrix));
+        boost::numeric::ublas::matrix<double> factorizedMatrix(Math::choleskyDecompose(inputMatrix));
 
         /*std::cout << "The factorized matrix is:" << std::endl;
         readMatrix(factorizedMatrix);*/
@@ -412,10 +410,8 @@ BOOST_AUTO_TEST_SUITE(MLRegression)
         expectedMatrix(3, 0) = 9.89949; expectedMatrix(3, 1) = 1.62455; expectedMatrix(3, 2) = 1.84971; expectedMatrix(3, 3) = 1.39262;
 
         for (unsigned int i = 0; i < expectedMatrix.size1(); ++i)
-            for (unsigned int j = 0; j < expectedMatrix.size2(); ++j)
-            {
-                BOOST_TEST(factorizedMatrix(i, j) == expectedMatrix(i, j));
-            }
+            BOOST_TEST(boost::numeric::ublas::row(factorizedMatrix, i) == boost::numeric::ublas::row(expectedMatrix, i),
+                       tt::per_element());
     }
 
     BOOST_AUTO_TEST_CASE(MoorePenroseRegressionTest, *utf::tolerance(1e-4))
@@ -424,9 +420,9 @@ BOOST_AUTO_TEST_SUITE(MLRegression)
         const std::string dVarName = "HANG_SENG";
         const std::vector<std::string> idVarNames = {"DOW_JONES", "US_GDP_SAAR"};
         FxInputData fx(dVarName, idVarNames, fileName);
-        std::vector<double> vectorY = fx.m_dVar;
+        const boost::numeric::ublas::vector<double> vectorY = fx.m_dVar;
         boost::numeric::ublas::matrix<double> independentValuesMatrix = fx.m_idVars;
-        std::vector<double> coefficients;
+        boost::numeric::ublas::vector<double> coefficients(independentValuesMatrix.size2());
 
         clock_t startTime = clock();
 
@@ -453,9 +449,9 @@ BOOST_AUTO_TEST_SUITE(MLRegression)
         const std::string dVarName = "HANG_SENG";
         const std::vector<std::string> idVarNames = {"DOW_JONES", "US_GDP_SAAR"};
         FxInputData fx(dVarName, idVarNames, fileName);
-        std::vector<double> vectorY = fx.m_dVar;
-        boost::numeric::ublas::matrix<double> independentValuesMatrix = fx.m_idVars;
-        std::vector<double> coefficients;
+        const boost::numeric::ublas::vector<double> vectorY = fx.m_dVar;
+        const boost::numeric::ublas::matrix<double> independentValuesMatrix = fx.m_idVars;
+        boost::numeric::ublas::vector<double> coefficients(independentValuesMatrix.size2());
 
         clock_t startTime = clock();
 
@@ -474,6 +470,20 @@ BOOST_AUTO_TEST_SUITE(MLRegression)
 
         BOOST_TEST(coefficients == targetCoefficients, tt::per_element());
 
+        chlRegression.computeANOVA();
+        Math::ANOVA summary = chlRegression.getANOVA();
+
+        const double expectedTotalMSE = 0.014261017562460713;
+        const double expectedModelMSE = 0.36119190115590566;
+        const double expectedResidualMSE = 0.008797539080674183;
+        const double expectedRSquared = 0.39267004700044816;
+        const double expectedAdjRSquared = 0.3831057957721088;
+
+        BOOST_TEST(summary.totalMSEVariance == expectedTotalMSE);
+        BOOST_TEST(summary.modelMSEVariance == expectedModelMSE);
+        BOOST_TEST(summary.residualMSEVariance == expectedResidualMSE);
+        BOOST_TEST(summary.RSquared == expectedRSquared);
+        BOOST_TEST(summary.adjRSquared == expectedAdjRSquared);
     }
 
 BOOST_AUTO_TEST_SUITE_END()
