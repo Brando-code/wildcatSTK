@@ -8,6 +8,7 @@
 #include <boost/numeric/ublas/lu.hpp>
 #include <boost/qvm/mat_operations.hpp>
 #include <boost/qvm/mat_traits_array.hpp>
+#include <boost/math/distributions/students_t.hpp>
 
 /* AUXILIARY FUNCTIONS
  *--------------------------------------------------------------------------------------------------------------------*/
@@ -82,46 +83,50 @@ boost::numeric::ublas::matrix<double> Math::choleskyDecompose(const boost::numer
 
 /*REGRESSION MODEL METHODS
  * --------------------------------------------------------------------------------------------------------*/
-Math::ANOVA Math::RegressionModel::getANOVA() const
+Math::ANOVASummary Math::ANOVA::computeANOVA(const boost::numeric::ublas::vector<double> &coefficients,
+                                             const boost::numeric::ublas::vector<double> &dependentVariableValues,
+                                             const boost::numeric::ublas::matrix<double> &independentVariableValues,
+                                             const Math::RegressionModelAlgorithm &reg) const
 {
-    return m_anova;
-}
+    Math::ANOVASummary rv;
 
-void Math::RegressionModel::_ANOVATotal()
-{
+    //Overall regression diagnostics
     Math::UnivariateStat acc;
-    for (const auto& value : m_depVariableVals)
+    for (const auto& value : dependentVariableValues)
         acc.add(value);
 
-    m_anova.totalMean = acc.mean();
+    rv.totalMean = acc.mean();
+    rv.sampleSize = dependentVariableValues.size();
+    rv.totalDoF = rv.sampleSize - 1;
+    rv.totalMSEVariance = acc.variance() * dependentVariableValues.size() / rv.totalDoF;
 
-    m_anova.sampleSize = m_depVariableVals.size();
-    m_anova.totalDoF = m_anova.sampleSize - 1;
-    m_anova.totalMSEVariance = acc.variance() * m_depVariableVals.size() / m_anova.totalDoF;
-}
+    rv.fittedValues = boost::numeric::ublas::prod(independentVariableValues, coefficients);
+    rv.residuals = dependentVariableValues - rv.fittedValues;
+    rv.residualDoF = rv.sampleSize - independentVariableValues.size2();
+    rv.residualMSEVariance = boost::numeric::ublas::inner_prod(rv.residuals, rv.residuals) / rv.residualDoF;
 
-void Math::RegressionModel::_ANOVAResiduals()
-{
-    m_anova.fittedValues = boost::numeric::ublas::prod(m_indepVariableVals, m_coefficients);
-    m_anova.residuals = m_depVariableVals - m_anova.fittedValues;
+    const boost::numeric::ublas::vector<double> modelMeanDeviation = rv.fittedValues -
+                                                             boost::numeric::ublas::vector<double>(rv.fittedValues.size(), rv.totalMean);
 
-    m_anova.residualDoF = m_anova.sampleSize - m_indepVariableVals.size2();
-    m_anova.residualMSEVariance = boost::numeric::ublas::inner_prod(m_anova.residuals, m_anova.residuals) / m_anova.residualDoF;
-}
+    rv.modelDoF = independentVariableValues.size2() - 1;
+    rv.modelMSEVariance = boost::numeric::ublas::inner_prod(modelMeanDeviation, modelMeanDeviation) / rv.modelDoF;
 
-void Math::RegressionModel::_ANOVAModel()
-{
-    const boost::numeric::ublas::vector<double> modelError = m_anova.fittedValues -
-                                                boost::numeric::ublas::vector<double>(m_anova.fittedValues.size(), m_anova.totalMean);
+    rv.adjRSquared = 1 - rv.residualMSEVariance / rv.totalMSEVariance;
+    rv.RSquared = 1 - (rv.residualMSEVariance * rv.residualDoF) / (rv.totalMSEVariance * rv.totalDoF);
 
-    m_anova.modelDoF = m_indepVariableVals.size2() - 1;
-    m_anova.modelMSEVariance = boost::numeric::ublas::inner_prod(modelError, modelError) / m_anova.modelDoF;
-}
+    //Estimated coefficient diagnostics
+    const boost::numeric::ublas::matrix<double> coeffsCovMatrix = reg.computeCoefficientCovarianceMatrix(rv.residualMSEVariance);
+    SummaryStatistic st;
 
-void Math::RegressionModel::_ANOVARSquared()
-{
-    m_anova.adjRSquared = 1 - m_anova.residualMSEVariance / m_anova.totalMSEVariance;
-    m_anova.RSquared = 1 - (m_anova.residualMSEVariance * m_anova.residualDoF) / (m_anova.totalMSEVariance * m_anova.totalDoF);
+    for (unsigned int i = 0; i < coeffsCovMatrix.size1(); ++i)
+    {
+        st.stdErr = sqrt(coeffsCovMatrix(i, i));
+        st.tRatio = coefficients(i) / st.stdErr;
+        st.pValue = boost::math::cdf(boost::math::students_t_distribution<double>(rv.sampleSize), -2 * std::abs(st.tRatio));
+        rv.coefficientSummaryStat.push_back(st);
+    }
+
+    return rv;
 }
 
 Math::RegressionModelOLS::RegressionModelOLS() :
@@ -141,40 +146,36 @@ void Math::RegressionModelOLS::calibrate(boost::numeric::ublas::vector<double> &
                                          const boost::numeric::ublas::matrix<double> &independentVariableValues) const
 {
     if (dependentVariableValues.size() == independentVariableValues.size1() and independentVariableValues.size1() > 2)
-    {
         m_algorithmPtr -> calibrate(coefficients, dependentVariableValues, independentVariableValues);
-        m_coefficients = coefficients, m_depVariableVals = dependentVariableValues, m_indepVariableVals = independentVariableValues;
-    }
     else
         throw std::runtime_error("Math::RegressionModelOLS::calibrate : "
                                  "at least two observations are needed for regression model to run.");
 }
 
-void Math::RegressionModelOLS::computeANOVA()
+Math::ANOVASummary Math::RegressionModelOLS::getANOVA() const
 {
-    //Compute ANOVA for dependent variable (total)
-    _ANOVATotal();
-
-    //Compute ANOVA for residuals
-    _ANOVAResiduals();
-
-    //Compute ANOVA for predictor (fitted model)
-    _ANOVAModel();
-
-    //Compute R-squared measures
-    _ANOVARSquared();
+    return m_algorithmPtr -> getANOVA();
 }
 
 std::unique_ptr<Math::RegressionModel> Math::RegressionModelOLS::clone() const
 {
     return std::make_unique<Math::RegressionModelOLS>(*this);
 }
-//Regression by Moore-Penrose method
 
+
+Math::ANOVASummary Math::RegressionModelAlgorithm::getANOVA() const
+{
+    Math::ANOVA anova;
+    return anova.computeANOVA(m_coefficients, m_depVariableVals, m_indepVariableVals, *this);
+}
+
+//Regression by Moore-Penrose method
 void Math::RegressionModelAlgorithmMoorePenrose::calibrate(boost::numeric::ublas::vector<double> &coefficients,
                                                            const boost::numeric::ublas::vector<double> &dependentVariableValues,
                                                            const boost::numeric::ublas::matrix<double> &independentVariableValues) const
 {
+    m_depVariableVals = dependentVariableValues, m_indepVariableVals = independentVariableValues;
+
     const boost::numeric::ublas::matrix<double> transposedIndiVal(boost::numeric::ublas::trans(independentVariableValues));
     const boost::numeric::ublas::matrix<double> productTransIndiVal(boost::numeric::ublas::prod(transposedIndiVal,
                                                                                                 independentVariableValues));
@@ -188,6 +189,14 @@ void Math::RegressionModelAlgorithmMoorePenrose::calibrate(boost::numeric::ublas
                                                                                                      transposedIndiVal));
 
     coefficients = boost::numeric::ublas::prod(productInverseTransposed, dependentVariableValues);
+    m_coefficients = coefficients;
+}
+
+boost::numeric::ublas::matrix<double> Math::RegressionModelAlgorithmMoorePenrose::computeCoefficientCovarianceMatrix(
+        double residualVariance) const
+{
+    return residualVariance * Math::computeInverseMatrix(boost::numeric::ublas::prod(
+            boost::numeric::ublas::trans(m_indepVariableVals), m_indepVariableVals));
 }
 
 std::unique_ptr<Math::RegressionModelAlgorithm> Math::RegressionModelAlgorithmMoorePenrose::clone() const
@@ -199,6 +208,8 @@ void Math::RegressionModelAlgorithmCholesky::calibrate(boost::numeric::ublas::ve
                                                        const boost::numeric::ublas::vector<double> &dependentVariableValues,
                                                        const boost::numeric::ublas::matrix<double> &independentVariableValues) const
 {
+    m_depVariableVals = dependentVariableValues, m_indepVariableVals = independentVariableValues;
+
     const boost::numeric::ublas::matrix<double> transposedIndiVal(boost::numeric::ublas::trans(independentVariableValues));
     const boost::numeric::ublas::matrix<double> productTransIndiVal(boost::numeric::ublas::prod(transposedIndiVal,
                                                                     independentVariableValues));
@@ -215,22 +226,29 @@ void Math::RegressionModelAlgorithmCholesky::calibrate(boost::numeric::ublas::ve
         double sum = 0;
         for (unsigned int j = 0; j < i; ++j)
         {
-            sum += choleskyFactor(i,j) * omegaVector(j);
+            sum += choleskyFactor(i, j) * omegaVector(j);
         }
         omegaVector(i) = (productAb(i) - sum) / choleskyFactor(i,i);
     }
 
     // solve upper triangular system L*x=w for x by backward substitution
-    const boost::numeric::ublas::matrix<double> transpCholeskyFactor(boost::numeric::ublas::trans(choleskyFactor));
     for (int i = dim - 1; i >= 0 ; --i)
     {
         double sum = 0;
         for (unsigned int j = i + 1; j < dim ; ++j)
         {
-            sum += transpCholeskyFactor(i,j) * coefficients(j);
+            sum += choleskyFactor(j, i) * coefficients(j);
         }
-        coefficients(i) = (omegaVector(i) - sum) / transpCholeskyFactor(i,i);
+        coefficients(i) = (omegaVector(i) - sum) / choleskyFactor(i,i);
     }
+    m_coefficients = coefficients;
+}
+
+boost::numeric::ublas::matrix<double> Math::RegressionModelAlgorithmCholesky::computeCoefficientCovarianceMatrix(
+        double residualVariance) const
+{
+    //implement...
+    return boost::numeric::ublas::matrix<double>();
 }
 
 std::unique_ptr<Math::RegressionModelAlgorithm> Math::RegressionModelAlgorithmCholesky::clone() const

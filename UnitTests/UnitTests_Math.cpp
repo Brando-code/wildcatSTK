@@ -441,6 +441,14 @@ BOOST_AUTO_TEST_SUITE(MLRegression)
 
         BOOST_TEST(coefficients == targetCoefficients, tt::per_element());
 
+        const double residualMSE = 0.008797539080674183;
+        const boost::numeric::ublas::matrix<double> covMatrix = mpRegression.computeCoefficientCovarianceMatrix(residualMSE);
+
+        const std::vector<double> expectedStdErrs = {0.13136823, 1.29721688, 0.01689724};
+
+        for (unsigned int i = 0; i < covMatrix.size1(); ++i)
+            BOOST_TEST(sqrt(covMatrix(i, i)) == expectedStdErrs[i]);
+
     }
 
     BOOST_AUTO_TEST_CASE(CholeskyRegressionTest, *utf::tolerance(1e-4))
@@ -470,8 +478,7 @@ BOOST_AUTO_TEST_SUITE(MLRegression)
 
         BOOST_TEST(coefficients == targetCoefficients, tt::per_element());
 
-        chlRegression.computeANOVA();
-        Math::ANOVA summary = chlRegression.getANOVA();
+        Math::ANOVASummary summary = chlRegression.getANOVA();
 
         const double expectedTotalMSE = 0.014261017562460713;
         const double expectedModelMSE = 0.36119190115590566;

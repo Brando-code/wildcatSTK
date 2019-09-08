@@ -99,7 +99,7 @@ namespace Common
 
         void calibrate(const Common::DataSet &ds) final;
         double predict(const Common::DataSet &ds, unsigned int index) const final;
-        Math::ANOVA getANOVASummary() const;
+        Math::ANOVASummary getANOVASummary() const;
 
         boost::gregorian::date getFirstValidRegressionDate(const Common::DataSet &ds) const;
         std::vector<double> getCalibratedCoefficients() const;
