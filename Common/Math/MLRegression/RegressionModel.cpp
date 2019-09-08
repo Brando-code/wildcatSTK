@@ -168,10 +168,17 @@ void Math::RegressionModelAlgorithmMoorePenrose::calibrate(boost::numeric::ublas
     const boost::numeric::ublas::matrix<double> XtX(boost::numeric::ublas::prod(Xt, independentVariableValues));
 
     _computeInverseByLUFactorization(XtX, m_invXtX);
-    const boost::numeric::ublas::vector<double> XtY = boost::numeric::ublas::prod(Xt, dependentVariableValues);
+    if (!m_invertibleFlag)
+        return;
 
+    const boost::numeric::ublas::vector<double> XtY = boost::numeric::ublas::prod(Xt, dependentVariableValues);
     coefficients = boost::numeric::ublas::prod(m_invXtX, XtY);
     m_coefficients = coefficients;
+}
+
+bool Math::RegressionModelAlgorithmMoorePenrose::hasFailed() const
+{
+    return m_invertibleFlag;
 }
 
 boost::numeric::ublas::matrix<double> Math::RegressionModelAlgorithmMoorePenrose::computeCoefficientCovarianceMatrix(
@@ -195,13 +202,20 @@ void Math::RegressionModelAlgorithmCholesky::calibrate(boost::numeric::ublas::ve
     const boost::numeric::ublas::matrix<double> XtX(boost::numeric::ublas::prod(Xt, independentVariableValues));
 
     m_ch.decompose(XtX);
-    const boost::numeric::ublas::triangular_matrix<double, boost::numeric::ublas::lower> choleskyFactor = m_ch.getCholeskyFactor();
+    if (m_ch.hasFailed())
+        return;
+
+    const boost::numeric::ublas::vector<double> XtY(boost::numeric::ublas::prod(Xt, dependentVariableValues));
+    coefficients = _choleskySolve(m_ch.getCholeskyFactor(), XtY);
+    m_coefficients = coefficients;
+}
+
+boost::numeric::ublas::vector<double> Math::RegressionModelAlgorithmCholesky::_choleskySolve(
+        const boost::numeric::ublas::matrix<double> &choleskyFactor, const boost::numeric::ublas::vector<double> &rhs) const
+{
     const long dim = choleskyFactor.size1();
 
-    // solve lower triangular system Lw=A*b for w by forward substitution (* = transposition)
-    const boost::numeric::ublas::vector<double> XtY(boost::numeric::ublas::prod(Xt, dependentVariableValues));
-
-    boost::numeric::ublas::vector<double> omega(choleskyFactor.size2());
+    boost::numeric::ublas::vector<double> omega(dim);
     for (unsigned long i = 0; i < dim; ++i)
     {
         double sum = 0;
@@ -209,20 +223,33 @@ void Math::RegressionModelAlgorithmCholesky::calibrate(boost::numeric::ublas::ve
         {
             sum += choleskyFactor(i, j) * omega(j);
         }
-        omega(i) = (XtY(i) - sum) / choleskyFactor(i,i);
+        omega(i) = (rhs(i) - sum) / choleskyFactor(i, i);
     }
 
     // solve upper triangular system L*x=w for x by backward substitution
+    boost::numeric::ublas::vector<double> x(dim);
     for (long i = dim - 1; i >= 0 ; --i)
     {
         double sum = 0;
         for (unsigned long j = i + 1; j < dim ; ++j)
         {
-            sum += choleskyFactor(j, i) * coefficients(j);
+            sum += choleskyFactor(j, i) * x(j);
         }
-        coefficients(i) = (omega(i) - sum) / choleskyFactor(i,i);
+        x(i) = (omega(i) - sum) / choleskyFactor(i, i);
     }
-    m_coefficients = coefficients;
+    return x;
+}
+
+boost::numeric::ublas::matrix<double> Math::RegressionModelAlgorithmCholesky::_choleskySolve(
+        const boost::numeric::ublas::matrix<double> &choleskyFactor, const boost::numeric::ublas::matrix<double> &rhs) const
+{
+    //implement..
+    return boost::numeric::ublas::matrix<double>();
+}
+
+bool Math::RegressionModelAlgorithmCholesky::hasFailed() const
+{
+    return m_ch.hasFailed();
 }
 
 boost::numeric::ublas::matrix<double> Math::RegressionModelAlgorithmCholesky::computeCoefficientCovarianceMatrix(

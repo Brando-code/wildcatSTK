@@ -93,6 +93,7 @@ namespace Math
         virtual void calibrate(boost::numeric::ublas::vector<double> &coefficients,
                                const boost::numeric::ublas::vector<double> &dependentVariableValues,
                                const boost::numeric::ublas::matrix<double> &independentVariableValues) const = 0;
+        virtual bool hasFailed() const = 0;
         virtual boost::numeric::ublas::matrix<double> computeCoefficientCovarianceMatrix(double residualVariance) const = 0;
         Math::ANOVASummary getANOVA() const;
 
@@ -112,6 +113,7 @@ namespace Math
         void calibrate(boost::numeric::ublas::vector<double> &coefficients,
                        const boost::numeric::ublas::vector<double> &dependentVariableValues,
                        const boost::numeric::ublas::matrix<double> &independentVariableValues) const final;
+        bool hasFailed() const final;
         boost::numeric::ublas::matrix<double> computeCoefficientCovarianceMatrix(double residualVariance) const final;
 
         std::unique_ptr<Math::RegressionModelAlgorithm> clone() const final;
@@ -130,12 +132,18 @@ namespace Math
         void calibrate(boost::numeric::ublas::vector<double> &coefficients,
                        const boost::numeric::ublas::vector<double> &dependentVariableValues,
                        const boost::numeric::ublas::matrix<double> &independentVariableValues) const final;
+        bool hasFailed() const final;
         boost::numeric::ublas::matrix<double> computeCoefficientCovarianceMatrix(double residualVariance) const final;
 
         std::unique_ptr<Math::RegressionModelAlgorithm> clone() const final;
 
     private:
         mutable Math::CholeskyDecompose m_ch;
+
+        boost::numeric::ublas::vector<double> _choleskySolve(const boost::numeric::ublas::matrix<double> &choleskyFactor,
+                                                             const boost::numeric::ublas::vector<double> &rhs) const;
+        boost::numeric::ublas::matrix<double> _choleskySolve(const boost::numeric::ublas::matrix<double> &choleskyFactor,
+                                                             const boost::numeric::ublas::matrix<double> &rhs) const;
     };
 
 
