@@ -487,6 +487,17 @@ BOOST_AUTO_TEST_SUITE(MLRegression)
         BOOST_TEST(summary.residualMSEVariance == expectedResidualMSE);
         BOOST_TEST(summary.RSquared == expectedRSquared);
         BOOST_TEST(summary.adjRSquared == expectedAdjRSquared);
+
+        const std::vector<double> expectedStdErrs = {0.13136823, 1.29721688, 0.01689724};
+        const std::vector<double> expectedTratios = {8.340608, 1.487471, -1.250251};
+        const std::vector<double> expectedPvalues = {9.67873605e-14, 1.39330877e-01, 2.13471045e-01};
+
+        for (unsigned long i = 0; i < independentValuesMatrix.size2(); ++i)
+        {
+            BOOST_TEST(summary.coefficientSummaryStat.at(i).stdErr == expectedStdErrs.at(i));
+            BOOST_TEST(summary.coefficientSummaryStat.at(i).tRatio == expectedTratios.at(i));
+            BOOST_TEST(summary.coefficientSummaryStat.at(i).pValue == expectedPvalues.at(i));
+        }
     }
 
 BOOST_AUTO_TEST_SUITE_END()

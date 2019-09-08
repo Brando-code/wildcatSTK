@@ -88,10 +88,9 @@ Math::ANOVASummary Math::ANOVA::computeANOVA(const boost::numeric::ublas::vector
     {
         st.stdErr = sqrt(coeffsCovMatrix(i, i));
         st.tRatio = coefficients(i) / st.stdErr;
-        st.pValue = boost::math::cdf(boost::math::students_t_distribution<double>(rv.sampleSize), -2 * std::abs(st.tRatio));
+        st.pValue = 2 * boost::math::cdf(complement(boost::math::students_t_distribution<double>(rv.sampleSize - 1), std::abs(st.tRatio)));
         rv.coefficientSummaryStat.push_back(st);
     }
-
     return rv;
 }
 
@@ -243,8 +242,33 @@ boost::numeric::ublas::vector<double> Math::RegressionModelAlgorithmCholesky::_c
 boost::numeric::ublas::matrix<double> Math::RegressionModelAlgorithmCholesky::_choleskySolve(
         const boost::numeric::ublas::matrix<double> &choleskyFactor, const boost::numeric::ublas::matrix<double> &rhs) const
 {
-    //implement..
-    return boost::numeric::ublas::matrix<double>();
+    const long dim = choleskyFactor.size1();
+
+    boost::numeric::ublas::matrix<double> omega(dim, dim);
+    for (unsigned long i = 0; i < dim; ++i)
+    {
+        boost::numeric::ublas::vector<double> sum(dim, 0);
+        for (unsigned long j = 0; j < i; ++j)
+        {
+            for (unsigned long k = 0; k < dim; ++k)
+                sum(k) += choleskyFactor(i, j) * omega(j, k);
+        }
+        boost::numeric::ublas::row(omega, i) = (boost::numeric::ublas::row(rhs, i) - sum) / choleskyFactor(i, i);
+    }
+
+    // solve upper triangular system L*x=w for x by backward substitution
+    boost::numeric::ublas::matrix<double> x(dim, dim);
+    for (long i = dim - 1; i >= 0 ; --i)
+    {
+        boost::numeric::ublas::vector<double> sum(dim, 0);
+        for (unsigned long j = i + 1; j < dim ; ++j)
+        {
+            for (unsigned long k = 0; k < dim; ++k)
+                sum(k) += choleskyFactor(j, i) * x(j, k);
+        }
+        boost::numeric::ublas::row(x, i) = (boost::numeric::ublas::row(omega, i) - sum) / choleskyFactor(i, i);
+    }
+    return x;
 }
 
 bool Math::RegressionModelAlgorithmCholesky::hasFailed() const
@@ -255,8 +279,9 @@ bool Math::RegressionModelAlgorithmCholesky::hasFailed() const
 boost::numeric::ublas::matrix<double> Math::RegressionModelAlgorithmCholesky::computeCoefficientCovarianceMatrix(
         double residualVariance) const
 {
-    //implement...
-    return boost::numeric::ublas::matrix<double>();
+    const boost::numeric::ublas::matrix<double> variance =
+            residualVariance * boost::numeric::ublas::identity_matrix<double>(m_coefficients.size());
+    return _choleskySolve(m_ch.getCholeskyFactor(), variance);
 }
 
 std::unique_ptr<Math::RegressionModelAlgorithm> Math::RegressionModelAlgorithmCholesky::clone() const
