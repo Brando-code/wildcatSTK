@@ -8,14 +8,13 @@
 #include <vector>
 #include <boost/numeric/ublas/matrix.hpp>
 #include <boost/numeric/ublas/lu.hpp>
+#include "../LinearAlgebra/MatrixDecompose.h"
 
 
 namespace Math
 {
-    boost::numeric::ublas::matrix<double> computeInverseMatrix (boost::numeric::ublas::matrix<double> inputMatrix);
-    int computeDeterminantSign (const boost::numeric::ublas::permutation_matrix<std::size_t> &permutationMatrix);
-    double computeMatrixDeterminant (boost::numeric::ublas::matrix<double> inputMatrix);
-    boost::numeric::ublas::matrix<double> choleskyDecompose(const boost::numeric::ublas::matrix<double> &inputMatrix);
+    //int computeDeterminantSign (const boost::numeric::ublas::permutation_matrix<std::size_t> &permutationMatrix);
+    //double computeMatrixDeterminant (boost::numeric::ublas::matrix<double> inputMatrix);
 
 
     class RegressionModelAlgorithm;
@@ -68,10 +67,6 @@ namespace Math
         virtual std::unique_ptr<Math::RegressionModel> clone() const = 0;
 
         virtual ~RegressionModel() = default;
-
-    protected:
-        //mutable boost::numeric::ublas::vector<double> m_coefficients, m_depVariableVals;
-        //mutable boost::numeric::ublas::matrix<double> m_indepVariableVals;
     };
 
     class RegressionModelOLS : public RegressionModel
@@ -92,45 +87,56 @@ namespace Math
     };
 
 
-class RegressionModelAlgorithm
-{
-public:
-    virtual void calibrate(boost::numeric::ublas::vector<double> &coefficients,
-                           const boost::numeric::ublas::vector<double> &dependentVariableValues,
-                           const boost::numeric::ublas::matrix<double> &independentVariableValues) const = 0;
-    virtual boost::numeric::ublas::matrix<double> computeCoefficientCovarianceMatrix(double residualVariance) const = 0;
-    Math::ANOVASummary getANOVA() const;
+    class RegressionModelAlgorithm
+    {
+    public:
+        virtual void calibrate(boost::numeric::ublas::vector<double> &coefficients,
+                               const boost::numeric::ublas::vector<double> &dependentVariableValues,
+                               const boost::numeric::ublas::matrix<double> &independentVariableValues) const = 0;
+        virtual boost::numeric::ublas::matrix<double> computeCoefficientCovarianceMatrix(double residualVariance) const = 0;
+        Math::ANOVASummary getANOVA() const;
 
-    virtual ~RegressionModelAlgorithm() = default;
+        virtual ~RegressionModelAlgorithm() = default;
 
-    virtual std::unique_ptr<Math::RegressionModelAlgorithm> clone() const = 0;
+        virtual std::unique_ptr<Math::RegressionModelAlgorithm> clone() const = 0;
 
-protected:
-    mutable boost::numeric::ublas::vector<double> m_coefficients, m_depVariableVals;
-    mutable boost::numeric::ublas::matrix<double> m_indepVariableVals;
-};
+    protected:
+        mutable boost::numeric::ublas::vector<double> m_coefficients, m_depVariableVals;
+        mutable boost::numeric::ublas::matrix<double> m_indepVariableVals;
+    };
 
-class RegressionModelAlgorithmMoorePenrose : public RegressionModelAlgorithm
-{
-public:
-    void calibrate(boost::numeric::ublas::vector<double> &coefficients,
-                   const boost::numeric::ublas::vector<double> &dependentVariableValues,
-                   const boost::numeric::ublas::matrix<double> &independentVariableValues) const final;
-    boost::numeric::ublas::matrix<double> computeCoefficientCovarianceMatrix(double residualVariance) const final;
+    class RegressionModelAlgorithmMoorePenrose : public RegressionModelAlgorithm
+    {
+    public:
+        RegressionModelAlgorithmMoorePenrose();
+        void calibrate(boost::numeric::ublas::vector<double> &coefficients,
+                       const boost::numeric::ublas::vector<double> &dependentVariableValues,
+                       const boost::numeric::ublas::matrix<double> &independentVariableValues) const final;
+        boost::numeric::ublas::matrix<double> computeCoefficientCovarianceMatrix(double residualVariance) const final;
 
-    std::unique_ptr<Math::RegressionModelAlgorithm> clone() const final;
-};
+        std::unique_ptr<Math::RegressionModelAlgorithm> clone() const final;
 
-class RegressionModelAlgorithmCholesky : public RegressionModelAlgorithm
-{
-public:
-    void calibrate(boost::numeric::ublas::vector<double> &coefficients,
-                   const boost::numeric::ublas::vector<double> &dependentVariableValues,
-                   const boost::numeric::ublas::matrix<double> &independentVariableValues) const final;
-    boost::numeric::ublas::matrix<double> computeCoefficientCovarianceMatrix(double residualVariance) const final;
+    private:
+        mutable boost::numeric::ublas::matrix<double> m_invXtX;
+        mutable bool m_invertibleFlag;
 
-    std::unique_ptr<Math::RegressionModelAlgorithm> clone() const final;
-};
+        void _computeInverseByLUFactorization(boost::numeric::ublas::matrix<double> M,
+                                              boost::numeric::ublas::matrix<double>& M_inv) const;
+    };
+
+    class RegressionModelAlgorithmCholesky : public RegressionModelAlgorithm
+    {
+    public:
+        void calibrate(boost::numeric::ublas::vector<double> &coefficients,
+                       const boost::numeric::ublas::vector<double> &dependentVariableValues,
+                       const boost::numeric::ublas::matrix<double> &independentVariableValues) const final;
+        boost::numeric::ublas::matrix<double> computeCoefficientCovarianceMatrix(double residualVariance) const final;
+
+        std::unique_ptr<Math::RegressionModelAlgorithm> clone() const final;
+
+    private:
+        mutable Math::CholeskyDecompose m_ch;
+    };
 
 
 }

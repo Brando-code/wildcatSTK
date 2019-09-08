@@ -12,18 +12,7 @@
 
 /* AUXILIARY FUNCTIONS
  *--------------------------------------------------------------------------------------------------------------------*/
-
-// Matrix inversion
-boost::numeric::ublas::matrix<double> Math::computeInverseMatrix (boost::numeric::ublas::matrix<double> inputMatrix)
-{
-    boost::numeric::ublas::matrix<double> inverseMatrix = boost::numeric::ublas::identity_matrix<double>(inputMatrix.size1());
-    boost::numeric::ublas::permutation_matrix<size_t> permutationMatrix(inputMatrix.size1());
-    lu_factorize(inputMatrix, permutationMatrix);
-    lu_substitute(inputMatrix, permutationMatrix, inverseMatrix);
-
-    return inverseMatrix;
-}
-
+/*
 // Matrix determinant sign
 int Math::computeDeterminantSign(const boost::numeric::ublas::permutation_matrix<std::size_t> &permutationMatrix)
 {
@@ -57,30 +46,7 @@ double Math::computeMatrixDeterminant(boost::numeric::ublas::matrix<double> inpu
     return determinant;
 }
 
-// Cholesky Decomposition
-boost::numeric::ublas::matrix<double> Math::choleskyDecompose(const boost::numeric::ublas::matrix<double> &inputMatrix)
-{
-    const int dim = inputMatrix.size1();
-    boost::numeric::ublas::matrix<double> outputMatrix(boost::numeric::ublas::zero_matrix<double>(dim, dim));
-
-    for (unsigned int i = 0; i < dim ; ++i)
-    {
-        for (unsigned int k = 0; k < i + 1; ++k)
-        {
-            double sum = 0;
-            for (unsigned int j = 0; j < k; ++j)
-            {
-                sum += outputMatrix(i,j) * outputMatrix(k,j);
-            }
-
-            outputMatrix(i,k) = (i == k) ? sqrt(inputMatrix(i,i) - sum) :
-                                                        ((1./outputMatrix(k,k)) * (inputMatrix(i,k) - sum));
-        }
-    }
-    return outputMatrix;
-}
-
-
+*/
 /*REGRESSION MODEL METHODS
  * --------------------------------------------------------------------------------------------------------*/
 Math::ANOVASummary Math::ANOVA::computeANOVA(const boost::numeric::ublas::vector<double> &coefficients,
@@ -118,7 +84,7 @@ Math::ANOVASummary Math::ANOVA::computeANOVA(const boost::numeric::ublas::vector
     const boost::numeric::ublas::matrix<double> coeffsCovMatrix = reg.computeCoefficientCovarianceMatrix(rv.residualMSEVariance);
     SummaryStatistic st;
 
-    for (unsigned int i = 0; i < coeffsCovMatrix.size1(); ++i)
+    for (unsigned long i = 0; i < coeffsCovMatrix.size1(); ++i)
     {
         st.stdErr = sqrt(coeffsCovMatrix(i, i));
         st.tRatio = coefficients(i) / st.stdErr;
@@ -170,33 +136,48 @@ Math::ANOVASummary Math::RegressionModelAlgorithm::getANOVA() const
 }
 
 //Regression by Moore-Penrose method
+Math::RegressionModelAlgorithmMoorePenrose::RegressionModelAlgorithmMoorePenrose() : m_invXtX(), m_invertibleFlag(true)
+{
+
+}
+
+void Math::RegressionModelAlgorithmMoorePenrose::_computeInverseByLUFactorization(boost::numeric::ublas::matrix<double> M,
+                                                                                  boost::numeric::ublas::matrix<double> &M_inv) const
+{
+    M_inv = boost::numeric::ublas::identity_matrix<double>(M.size1());
+    boost::numeric::ublas::permutation_matrix<size_t> permutationMatrix(M.size1());
+
+    auto isSingular = lu_factorize(M, permutationMatrix);
+    if (isSingular)
+    {
+        m_invertibleFlag = false;
+        std::cerr << "Math::computeInverseMatrix : singular matrix is not invertible." << std::endl;
+        return;
+    }
+
+    lu_substitute(M, permutationMatrix, M_inv);
+}
+
 void Math::RegressionModelAlgorithmMoorePenrose::calibrate(boost::numeric::ublas::vector<double> &coefficients,
                                                            const boost::numeric::ublas::vector<double> &dependentVariableValues,
                                                            const boost::numeric::ublas::matrix<double> &independentVariableValues) const
 {
     m_depVariableVals = dependentVariableValues, m_indepVariableVals = independentVariableValues;
 
-    const boost::numeric::ublas::matrix<double> transposedIndiVal(boost::numeric::ublas::trans(independentVariableValues));
-    const boost::numeric::ublas::matrix<double> productTransIndiVal(boost::numeric::ublas::prod(transposedIndiVal,
-                                                                                                independentVariableValues));
-    // Inversion check
-    const double determinantMatrix = Math::computeMatrixDeterminant(productTransIndiVal);
-    if (determinantMatrix == 0.)
-        throw std::runtime_error("Error: matrix is not invertible.");
+    const boost::numeric::ublas::matrix<double> Xt(boost::numeric::ublas::trans(independentVariableValues));
+    const boost::numeric::ublas::matrix<double> XtX(boost::numeric::ublas::prod(Xt, independentVariableValues));
 
-    const boost::numeric::ublas::matrix<double> inverseProduct(computeInverseMatrix(productTransIndiVal));
-    const boost::numeric::ublas::matrix<double> productInverseTransposed(boost::numeric::ublas::prod(inverseProduct,
-                                                                                                     transposedIndiVal));
+    _computeInverseByLUFactorization(XtX, m_invXtX);
+    const boost::numeric::ublas::vector<double> XtY = boost::numeric::ublas::prod(Xt, dependentVariableValues);
 
-    coefficients = boost::numeric::ublas::prod(productInverseTransposed, dependentVariableValues);
+    coefficients = boost::numeric::ublas::prod(m_invXtX, XtY);
     m_coefficients = coefficients;
 }
 
 boost::numeric::ublas::matrix<double> Math::RegressionModelAlgorithmMoorePenrose::computeCoefficientCovarianceMatrix(
         double residualVariance) const
 {
-    return residualVariance * Math::computeInverseMatrix(boost::numeric::ublas::prod(
-            boost::numeric::ublas::trans(m_indepVariableVals), m_indepVariableVals));
+    return residualVariance * m_invXtX;
 }
 
 std::unique_ptr<Math::RegressionModelAlgorithm> Math::RegressionModelAlgorithmMoorePenrose::clone() const
@@ -210,36 +191,36 @@ void Math::RegressionModelAlgorithmCholesky::calibrate(boost::numeric::ublas::ve
 {
     m_depVariableVals = dependentVariableValues, m_indepVariableVals = independentVariableValues;
 
-    const boost::numeric::ublas::matrix<double> transposedIndiVal(boost::numeric::ublas::trans(independentVariableValues));
-    const boost::numeric::ublas::matrix<double> productTransIndiVal(boost::numeric::ublas::prod(transposedIndiVal,
-                                                                    independentVariableValues));
-    const boost::numeric::ublas::matrix<double> choleskyFactor(Math::choleskyDecompose(productTransIndiVal));
+    const boost::numeric::ublas::matrix<double> Xt(boost::numeric::ublas::trans(independentVariableValues));
+    const boost::numeric::ublas::matrix<double> XtX(boost::numeric::ublas::prod(Xt, independentVariableValues));
 
-    const int dim = choleskyFactor.size1();
+    m_ch.decompose(XtX);
+    const boost::numeric::ublas::triangular_matrix<double, boost::numeric::ublas::lower> choleskyFactor = m_ch.getCholeskyFactor();
+    const long dim = choleskyFactor.size1();
 
     // solve lower triangular system Lw=A*b for w by forward substitution (* = transposition)
-    const boost::numeric::ublas::vector<double> productAb(boost::numeric::ublas::prod(transposedIndiVal, dependentVariableValues));
+    const boost::numeric::ublas::vector<double> XtY(boost::numeric::ublas::prod(Xt, dependentVariableValues));
 
-    boost::numeric::ublas::vector<double> omegaVector(choleskyFactor.size2());
-    for (unsigned int i = 0; i < dim; ++i)
+    boost::numeric::ublas::vector<double> omega(choleskyFactor.size2());
+    for (unsigned long i = 0; i < dim; ++i)
     {
         double sum = 0;
-        for (unsigned int j = 0; j < i; ++j)
+        for (unsigned long j = 0; j < i; ++j)
         {
-            sum += choleskyFactor(i, j) * omegaVector(j);
+            sum += choleskyFactor(i, j) * omega(j);
         }
-        omegaVector(i) = (productAb(i) - sum) / choleskyFactor(i,i);
+        omega(i) = (XtY(i) - sum) / choleskyFactor(i,i);
     }
 
     // solve upper triangular system L*x=w for x by backward substitution
-    for (int i = dim - 1; i >= 0 ; --i)
+    for (long i = dim - 1; i >= 0 ; --i)
     {
         double sum = 0;
-        for (unsigned int j = i + 1; j < dim ; ++j)
+        for (unsigned long j = i + 1; j < dim ; ++j)
         {
             sum += choleskyFactor(j, i) * coefficients(j);
         }
-        coefficients(i) = (omegaVector(i) - sum) / choleskyFactor(i,i);
+        coefficients(i) = (omega(i) - sum) / choleskyFactor(i,i);
     }
     m_coefficients = coefficients;
 }
