@@ -120,7 +120,7 @@ namespace Math
 
     private:
         mutable boost::numeric::ublas::matrix<double> m_invXtX;
-        mutable bool m_invertibleFlag;
+        mutable bool m_isInvertible;
 
         void _computeInverseByLUFactorization(boost::numeric::ublas::matrix<double> M,
                                               boost::numeric::ublas::matrix<double>& M_inv) const;

@@ -4,7 +4,7 @@
 
 #include "MatrixDecompose.h"
 
-Math::CholeskyDecompose::CholeskyDecompose() : m_L(), m_failFlag(false)
+Math::CholeskyDecompose::CholeskyDecompose() : m_L(), m_isPositiveDef(false)
 {
 
 }
@@ -28,7 +28,7 @@ void Math::CholeskyDecompose::decompose(const boost::numeric::ublas::matrix<doub
             {
                 std::cerr << "Math::CholeskyDecompose::decompose : "
                              "algorithm failed to complete due to matrix non-positive-definiteness" << std::endl;
-                m_failFlag = true;
+                m_isPositiveDef = true;
                 break;
             }
             else
@@ -46,5 +46,5 @@ boost::numeric::ublas::triangular_matrix<double, boost::numeric::ublas::lower> M
 
 bool Math::CholeskyDecompose::hasFailed() const
 {
-    return m_failFlag;
+    return m_isPositiveDef;
 }

@@ -82,13 +82,13 @@ Math::ANOVASummary Math::ANOVA::computeANOVA(const boost::numeric::ublas::vector
 
     //Estimated coefficient diagnostics
     const boost::numeric::ublas::matrix<double> coeffsCovMatrix = reg.computeCoefficientCovarianceMatrix(rv.residualMSEVariance);
-    SummaryStatistic st;
+    Math::SummaryStatistic st;
 
     for (unsigned long i = 0; i < coeffsCovMatrix.size1(); ++i)
     {
         st.stdErr = sqrt(coeffsCovMatrix(i, i));
         st.tRatio = coefficients(i) / st.stdErr;
-        st.pValue = 2 * boost::math::cdf(complement(boost::math::students_t_distribution<double>(rv.sampleSize - 1), std::abs(st.tRatio)));
+        st.pValue = 2 * boost::math::cdf(boost::math::students_t_distribution<double>(rv.sampleSize - 1), -std::abs(st.tRatio));
         rv.coefficientSummaryStat.push_back(st);
     }
     return rv;
@@ -134,8 +134,7 @@ Math::ANOVASummary Math::RegressionModelAlgorithm::getANOVA() const
     return anova.computeANOVA(m_coefficients, m_depVariableVals, m_indepVariableVals, *this);
 }
 
-//Regression by Moore-Penrose method
-Math::RegressionModelAlgorithmMoorePenrose::RegressionModelAlgorithmMoorePenrose() : m_invXtX(), m_invertibleFlag(true)
+Math::RegressionModelAlgorithmMoorePenrose::RegressionModelAlgorithmMoorePenrose() : m_invXtX(), m_isInvertible(true)
 {
 
 }
@@ -149,7 +148,7 @@ void Math::RegressionModelAlgorithmMoorePenrose::_computeInverseByLUFactorizatio
     auto isSingular = lu_factorize(M, permutationMatrix);
     if (isSingular)
     {
-        m_invertibleFlag = false;
+        m_isInvertible = false;
         std::cerr << "Math::computeInverseMatrix : singular matrix is not invertible." << std::endl;
         return;
     }
@@ -167,7 +166,7 @@ void Math::RegressionModelAlgorithmMoorePenrose::calibrate(boost::numeric::ublas
     const boost::numeric::ublas::matrix<double> XtX(boost::numeric::ublas::prod(Xt, independentVariableValues));
 
     _computeInverseByLUFactorization(XtX, m_invXtX);
-    if (!m_invertibleFlag)
+    if (!m_isInvertible)
         return;
 
     const boost::numeric::ublas::vector<double> XtY = boost::numeric::ublas::prod(Xt, dependentVariableValues);
@@ -177,7 +176,7 @@ void Math::RegressionModelAlgorithmMoorePenrose::calibrate(boost::numeric::ublas
 
 bool Math::RegressionModelAlgorithmMoorePenrose::hasFailed() const
 {
-    return m_invertibleFlag;
+    return m_isInvertible;
 }
 
 boost::numeric::ublas::matrix<double> Math::RegressionModelAlgorithmMoorePenrose::computeCoefficientCovarianceMatrix(
@@ -214,6 +213,7 @@ boost::numeric::ublas::vector<double> Math::RegressionModelAlgorithmCholesky::_c
 {
     const long dim = choleskyFactor.size1();
 
+    // solve lower triangular system Lt*w=y for x by forward substitution
     boost::numeric::ublas::vector<double> omega(dim);
     for (unsigned long i = 0; i < dim; ++i)
     {
@@ -244,6 +244,7 @@ boost::numeric::ublas::matrix<double> Math::RegressionModelAlgorithmCholesky::_c
 {
     const long dim = choleskyFactor.size1();
 
+    // solve lower triangular system Lt*W=Y for x by forward substitution
     boost::numeric::ublas::matrix<double> omega(dim, dim);
     for (unsigned long i = 0; i < dim; ++i)
     {
@@ -256,7 +257,7 @@ boost::numeric::ublas::matrix<double> Math::RegressionModelAlgorithmCholesky::_c
         boost::numeric::ublas::row(omega, i) = (boost::numeric::ublas::row(rhs, i) - sum) / choleskyFactor(i, i);
     }
 
-    // solve upper triangular system L*x=w for x by backward substitution
+    // solve upper triangular system L*X=W for x by backward substitution
     boost::numeric::ublas::matrix<double> x(dim, dim);
     for (long i = dim - 1; i >= 0 ; --i)
     {

@@ -294,9 +294,6 @@ void Common::ConfigModelSpecRegression::calibrate(const Common::DataSet &ds)
     boost::numeric::ublas::vector<double> params(idVariableValuesForRegression.size2());
     m_modelPtr -> calibrate(params, dVariableValuesForRegression, idVariableValuesForRegression);
     m_params = Common::bstVec2stdVec(params);
-/*
-    if (m_computeAnovaFlag)
-        m_modelPtr -> computeANOVA();*/
 }
 
 double Common::ConfigModelSpecRegression::predict(const Common::DataSet &ds, unsigned int index) const
@@ -325,7 +322,7 @@ std::vector<double> Common::ConfigModelSpecRegression::getCalibratedCoefficients
 Math::ANOVASummary Common::ConfigModelSpecRegression::getANOVASummary() const
 {
     if (!m_computeAnovaFlag)
-        std::cerr << "Common::ConfigModelSpecRegression::getANOVASummary : Diagnostics is switched off for model " +
+        std::cerr << "Common::ConfigModelSpecRegression::getANOVASummary : diagnostics are switched off for model " +
                      m_dVariable.getBasename() + ". Empty ANOVA may be returned..." << std::endl;
 
     return m_modelPtr -> getANOVA();

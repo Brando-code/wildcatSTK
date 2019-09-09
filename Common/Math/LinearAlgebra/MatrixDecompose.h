@@ -29,7 +29,7 @@ namespace Math
 
     private:
         boost::numeric::ublas::triangular_matrix<double, boost::numeric::ublas::lower> m_L;
-        bool m_failFlag;
+        bool m_isPositiveDef;
     };
 
     //More decomposition classes to derive from MatrixDecompose..
