@@ -95,7 +95,7 @@ Math::ANOVASummary Math::ANOVA::computeANOVA(const boost::numeric::ublas::vector
 }
 
 Math::RegressionModelOLS::RegressionModelOLS() :
-    m_algorithmPtr(Math::RegressionModelAlgorithmCholesky().clone())
+    m_algorithmPtr(Math::RegressionModelAlgorithmCholesky().clone()) //[AC] initialize to default algorithm (first link in chain)
 {
 
 }
@@ -111,7 +111,21 @@ void Math::RegressionModelOLS::calibrate(boost::numeric::ublas::vector<double> &
                                          const boost::numeric::ublas::matrix<double> &independentVariableValues) const
 {
     if (dependentVariableValues.size() == independentVariableValues.size1() and independentVariableValues.size1() > 2)
-        m_algorithmPtr -> calibrate(coefficients, dependentVariableValues, independentVariableValues);
+    {
+        std::shared_ptr<Math::RegressionModelAlgorithmOLSChain> head =
+                std::make_shared<Math::RegressionModelAlgorithmOLSChain>(Math::RegressionModelAlgorithmOLSChain());
+
+        std::shared_ptr<Math::RegressionModelAlgorithmOLSChain> firstLink =
+                std::make_shared<Math::RegressionModelOLSLinkCholesky>(Math::RegressionModelOLSLinkCholesky());
+        //Define more links here..
+
+        std::shared_ptr<Math::RegressionModelAlgorithmOLSChain> lastLink =
+                std::make_shared<Math::RegressionModelOLSLinkMoorePenrose>(Math::RegressionModelOLSLinkMoorePenrose());
+
+        //Add more links here..
+        head -> addLink(firstLink), head -> addLink(lastLink);
+        m_algorithmPtr = head -> handle(coefficients, dependentVariableValues, independentVariableValues);
+    }
     else
         throw std::runtime_error("Math::RegressionModelOLS::calibrate : "
                                  "at least two observations are needed for regression model to run.");
@@ -125,6 +139,55 @@ Math::ANOVASummary Math::RegressionModelOLS::getANOVA() const
 std::unique_ptr<Math::RegressionModel> Math::RegressionModelOLS::clone() const
 {
     return std::make_unique<Math::RegressionModelOLS>(*this);
+}
+
+Math::RegressionModelAlgorithmOLSChain::RegressionModelAlgorithmOLSChain() : m_nextLink(nullptr)
+{
+
+}
+
+void Math::RegressionModelAlgorithmOLSChain::addLink(const std::shared_ptr<Math::RegressionModelAlgorithmOLSChain> &link)
+{
+    if (m_nextLink)
+        m_nextLink -> addLink(link);
+    else
+        m_nextLink = link;
+}
+
+std::unique_ptr<Math::RegressionModelAlgorithm> Math::RegressionModelAlgorithmOLSChain::handle(boost::numeric::ublas::vector<double> &coefficients,
+                                                                                               const boost::numeric::ublas::vector<double> &dependentVariableValues,
+                                                                                               const boost::numeric::ublas::matrix<double> &independentVariableValues) const
+{
+    if (m_nextLink)
+        return m_nextLink -> handle(coefficients, dependentVariableValues, independentVariableValues);
+    else
+        throw std::runtime_error("Math::RegressionModelAlgorithmOLSChain::calibrate : impossible to run OLS algorithm chain.");
+}
+
+std::unique_ptr<Math::RegressionModelAlgorithm> Math::RegressionModelOLSLinkCholesky::handle(boost::numeric::ublas::vector<double> &coefficients,
+                                                                                             const boost::numeric::ublas::vector<double> &dependentVariableValues,
+                                                                                             const boost::numeric::ublas::matrix<double> &independentVariableValues) const
+{
+    Math::RegressionModelAlgorithmCholesky ch;
+    ch.calibrate(coefficients, dependentVariableValues, independentVariableValues);
+
+    if (ch.hasFailed())
+        return Math::RegressionModelAlgorithmOLSChain::handle(coefficients, dependentVariableValues, independentVariableValues);
+    else
+        return std::make_unique<Math::RegressionModelAlgorithmCholesky>(ch);
+}
+
+std::unique_ptr<Math::RegressionModelAlgorithm> Math::RegressionModelOLSLinkMoorePenrose::handle(boost::numeric::ublas::vector<double> &coefficients,
+                                                                                                 const boost::numeric::ublas::vector<double> &dependentVariableValues,
+                                                                                                 const boost::numeric::ublas::matrix<double> &independentVariableValues) const
+{
+    Math::RegressionModelAlgorithmMoorePenrose mp;
+    mp.calibrate(coefficients, dependentVariableValues, independentVariableValues);
+
+    if (mp.hasFailed())
+        return Math::RegressionModelAlgorithmOLSChain::handle(coefficients, dependentVariableValues, independentVariableValues);
+    else
+        return std::make_unique<Math::RegressionModelAlgorithmMoorePenrose>(mp);
 }
 
 

@@ -83,7 +83,38 @@ namespace Math
         std::unique_ptr<Math::RegressionModel> clone() const final;
 
     private:
-        std::unique_ptr<Math::RegressionModelAlgorithm> m_algorithmPtr;
+        mutable std::unique_ptr<Math::RegressionModelAlgorithm> m_algorithmPtr;
+    };
+
+
+    class RegressionModelAlgorithmOLSChain
+    {
+    public:
+        RegressionModelAlgorithmOLSChain();
+        virtual std::unique_ptr<Math::RegressionModelAlgorithm> handle(boost::numeric::ublas::vector<double> &coefficients,
+                                                                       const boost::numeric::ublas::vector<double> &dependentVariableValues,
+                                                                       const boost::numeric::ublas::matrix<double> &independentVariableValues) const;
+
+        void addLink(const std::shared_ptr<Math::RegressionModelAlgorithmOLSChain> &link);
+
+        virtual ~RegressionModelAlgorithmOLSChain() = default;
+
+    private:
+        std::shared_ptr<Math::RegressionModelAlgorithmOLSChain> m_nextLink;
+    };
+
+    class RegressionModelOLSLinkCholesky : public RegressionModelAlgorithmOLSChain
+    {
+        std::unique_ptr<Math::RegressionModelAlgorithm> handle(boost::numeric::ublas::vector<double> &coefficients,
+                                                                  const boost::numeric::ublas::vector<double> &dependentVariableValues,
+                                                                  const boost::numeric::ublas::matrix<double> &independentVariableValues) const final;
+    };
+
+    class RegressionModelOLSLinkMoorePenrose : public RegressionModelAlgorithmOLSChain
+    {
+        std::unique_ptr<Math::RegressionModelAlgorithm> handle(boost::numeric::ublas::vector<double> &coefficients,
+                                                                  const boost::numeric::ublas::vector<double> &dependentVariableValues,
+                                                                  const boost::numeric::ublas::matrix<double> &independentVariableValues) const final;
     };
 
 

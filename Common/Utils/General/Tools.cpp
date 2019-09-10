@@ -74,7 +74,7 @@ void StringSplitAlgebraicDecorator::split(const std::string &string, const std::
     std::string token;
     for (unsigned int i = 0; i < cleanString.length(); ++i)
     {
-        const std::string thisToken = std::string(1,cleanString.at(i));
+        const std::string thisToken = std::string(1, cleanString.at(i));
         if (pattern.find(thisToken) != std::string::npos)
         {
             if (!token.empty())
@@ -255,7 +255,7 @@ bool Common::isNumeric(const std::string &string)
            (std::strtod(string.c_str(), &pEnd) == 0 and *pEnd == '\0');
 }
 
-// From Boost vector to std vector conversion
+// From Boost vector to std vector converter
 std::vector<double> Common::bstVec2stdVec (const boost::numeric::ublas::vector<double> &inputVector)
 {
     std::vector<double> outputVector;
