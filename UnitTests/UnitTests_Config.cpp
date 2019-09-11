@@ -305,6 +305,25 @@ BOOST_AUTO_TEST_SUITE(ConfigModelSpec)
         BOOST_CHECK_EQUAL(spec.getMultiplier(), fx.f_m);
     }
 
+    BOOST_AUTO_TEST_CASE(ConfigModelSpec_regression)
+    {
+        Fixture fx;
+        fx.f_startDate = boost::gregorian::date(2007, 03, 31);
+        Common::ConfigModelSpecRegression spec(fx.f_dv, fx.f_ivs, fx.f_modelSubType, fx.f_startDate);
+
+        //Test copy semantics
+        Common::ConfigModelSpecRegression otherSpec(fx.f_dv, fx.f_ivs, fx.f_modelSubType, boost::gregorian::date(2012, 9, 30));
+        otherSpec = spec;
+        BOOST_CHECK(spec == otherSpec);
+
+        //Test move semantics
+        Common::ConfigModelSpecRegression move = std::move(otherSpec);
+        Common::ConfigModelSpecRegression otherMove(fx.f_dv, fx.f_ivs, fx.f_modelSubType, boost::gregorian::date(2012, 9, 30));
+        otherMove = Common::ConfigModelSpecRegression(fx.f_dv, fx.f_ivs, fx.f_modelSubType, fx.f_startDate);
+        BOOST_CHECK(spec == move);
+        BOOST_CHECK(spec == otherMove);
+    }
+
     BOOST_AUTO_TEST_CASE(ConfigModelSpec_regression_startDate_happyPath)
     {
         Fixture fx;
@@ -344,6 +363,31 @@ BOOST_AUTO_TEST_SUITE(ConfigModelSpec)
 
         const std::vector<double> expectedCoefficients = {1.0957, 1.9296, -0.021125};
         BOOST_TEST(cms.getCalibratedCoefficients() == expectedCoefficients, tt::per_element());
+
+        Math::ANOVASummary summary = cms.getANOVASummary();
+
+        const double expectedTotalMSE = 0.014261017562460713;
+        const double expectedModelMSE = 0.36119190115590566;
+        const double expectedResidualMSE = 0.008797539080674183;
+        const double expectedRSquared = 0.39267004700044816;
+        const double expectedAdjRSquared = 0.3831057957721088;
+
+        BOOST_TEST(summary.totalMSEVariance == expectedTotalMSE);
+        BOOST_TEST(summary.modelMSEVariance == expectedModelMSE);
+        BOOST_TEST(summary.residualMSEVariance == expectedResidualMSE);
+        BOOST_TEST(summary.RSquared == expectedRSquared);
+        BOOST_TEST(summary.adjRSquared == expectedAdjRSquared);
+
+        const std::vector<double> expectedStdErrs = {0.13136823, 1.29721688, 0.01689724};
+        const std::vector<double> expectedTratios = {8.340608, 1.487471, -1.250251};
+        const std::vector<double> expectedPvalues = {9.67873605e-14, 1.39330877e-01, 2.13471045e-01};
+
+        for (unsigned long i = 0; i < fx.f_ivs.size() + 1; ++i)
+        {
+            BOOST_TEST(summary.coefficientSummaryStat.at(i).stdErr == expectedStdErrs.at(i));
+            BOOST_TEST(summary.coefficientSummaryStat.at(i).tRatio == expectedTratios.at(i));
+            BOOST_TEST(summary.coefficientSummaryStat.at(i).pValue == expectedPvalues.at(i));
+        }
     }
 
 BOOST_AUTO_TEST_SUITE_END()

@@ -447,7 +447,7 @@ BOOST_AUTO_TEST_SUITE(MLRegression)
 
     }
 
-    BOOST_AUTO_TEST_CASE(CholeskyRegressionTest, *utf::tolerance(1e-4))
+    BOOST_AUTO_TEST_CASE(CholeskyRegressionTest_viaRegressionModelOLS, *utf::tolerance(1e-4))
     {
         const std::string fileName = "sample_dataSet_clean.json";
         const std::string dVarName = "HANG_SENG";
@@ -498,6 +498,40 @@ BOOST_AUTO_TEST_SUITE(MLRegression)
             BOOST_TEST(summary.coefficientSummaryStat.at(i).tRatio == expectedTratios.at(i));
             BOOST_TEST(summary.coefficientSummaryStat.at(i).pValue == expectedPvalues.at(i));
         }
+    }
+
+    BOOST_AUTO_TEST_CASE(RegressionModelOLS_badData)
+    {
+        boost::numeric::ublas::vector<double> betaHat(2);
+        const boost::numeric::ublas::vector<double> Y(1, 1);
+        const boost::numeric::ublas::matrix<double> X(1, 2, 1);
+
+        Math::RegressionModelOLS reg;
+        BOOST_CHECK_THROW(reg.calibrate(betaHat, Y, X), std::runtime_error);
+    }
+
+    BOOST_AUTO_TEST_CASE(RegressionModelOLS_singular)
+    {
+        boost::numeric::ublas::vector<double> betaHat(3);
+        boost::numeric::ublas::vector<double> Y(3);
+        Y(0) = 1, Y(1) = 2, Y(2) = 3;
+
+        boost::numeric::ublas::matrix<double> X(3, 3);
+        X(0, 0) = 2, X(0, 1) = 1;
+        X(1, 0) = 3, X(1, 1) = 2;
+        X(2, 0) = 7; X(2, 1) = 1;
+        boost::numeric::ublas::column(X, 2) = 2 * boost::numeric::ublas::column(X, 1);
+
+        Math::RegressionModelAlgorithmMoorePenrose mp;
+        mp.calibrate(betaHat, Y, X);
+        BOOST_CHECK_EQUAL(mp.hasFailed(), true);
+
+        Math::RegressionModelAlgorithmCholesky ch;
+        ch.calibrate(betaHat, Y, X);
+        BOOST_CHECK_EQUAL(ch.hasFailed(), true);
+
+        Math::RegressionModelOLS reg;
+        BOOST_CHECK_THROW(reg.calibrate(betaHat, Y, X), std::runtime_error);
     }
 
 BOOST_AUTO_TEST_SUITE_END()

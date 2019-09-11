@@ -74,6 +74,7 @@ namespace Math
     public:
         RegressionModelOLS();
         RegressionModelOLS(const RegressionModelOLS& other);
+        RegressionModelOLS& operator=(const RegressionModelOLS& other);
 
         void calibrate(boost::numeric::ublas::vector<double> &coefficients,
                        const boost::numeric::ublas::vector<double> &dependentVariableValues,

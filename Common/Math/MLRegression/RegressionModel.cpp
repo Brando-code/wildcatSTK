@@ -106,6 +106,14 @@ Math::RegressionModelOLS::RegressionModelOLS(const Math::RegressionModelOLS &oth
 
 }
 
+Math::RegressionModelOLS& Math::RegressionModelOLS::operator=(const Math::RegressionModelOLS &other)
+{
+    if (&other != this)
+        m_algorithmPtr = other.m_algorithmPtr -> clone();
+
+    return *this;
+}
+
 void Math::RegressionModelOLS::calibrate(boost::numeric::ublas::vector<double> &coefficients,
                                          const boost::numeric::ublas::vector<double> &dependentVariableValues,
                                          const boost::numeric::ublas::matrix<double> &independentVariableValues) const
@@ -239,7 +247,7 @@ void Math::RegressionModelAlgorithmMoorePenrose::calibrate(boost::numeric::ublas
 
 bool Math::RegressionModelAlgorithmMoorePenrose::hasFailed() const
 {
-    return m_isInvertible;
+    return !m_isInvertible;
 }
 
 boost::numeric::ublas::matrix<double> Math::RegressionModelAlgorithmMoorePenrose::computeCoefficientCovarianceMatrix(
