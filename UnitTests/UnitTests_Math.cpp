@@ -405,9 +405,11 @@ BOOST_AUTO_TEST_SUITE(MLRegression)
         expectedMatrix(2, 0) = 12.72792; expectedMatrix(2, 1) = 3.04604; expectedMatrix(2, 2) = 1.64974;
         expectedMatrix(3, 0) = 9.89949; expectedMatrix(3, 1) = 1.62455; expectedMatrix(3, 2) = 1.84971; expectedMatrix(3, 3) = 1.39262;
 
+
         for (unsigned int i = 0; i < expectedMatrix.size1(); ++i)
             BOOST_TEST(boost::numeric::ublas::row(factorizedMatrix, i) == boost::numeric::ublas::row(expectedMatrix, i),
                        tt::per_element());
+        //BOOST_TEST(factorizedMatrix == expectedMatrix);
     }
 
     BOOST_AUTO_TEST_CASE(MoorePenroseRegressionTest, *utf::tolerance(1e-4))

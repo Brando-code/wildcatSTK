@@ -10,45 +10,10 @@
 #include <boost/qvm/mat_traits_array.hpp>
 #include <boost/math/distributions/students_t.hpp>
 
-/* AUXILIARY FUNCTIONS
- *--------------------------------------------------------------------------------------------------------------------*/
-/*
-// Matrix determinant sign
-int Math::computeDeterminantSign(const boost::numeric::ublas::permutation_matrix<std::size_t> &permutationMatrix)
-{
-    int detSign = 1.;
-    for (int i = 0; i < permutationMatrix.size(); ++i)
-    {
-        if (i != permutationMatrix(i))
-            detSign *= -1.;
-    }
-    return detSign;
-}
 
-// Matrix determinant
-double Math::computeMatrixDeterminant(boost::numeric::ublas::matrix<double> inputMatrix)
-{
-    boost::numeric::ublas::permutation_matrix<std::size_t> permutationMatrix(inputMatrix.size1());
-
-    double determinant = 1.;
-    if (boost::numeric::ublas::lu_factorize(inputMatrix, permutationMatrix))
-    {
-        determinant = 0.;
-    }
-    else
-    {
-        for (int i = 0; i < inputMatrix.size1(); ++i)
-        {
-            determinant *= inputMatrix(i, i);
-        }
-        determinant *= computeDeterminantSign(permutationMatrix);
-    }
-    return determinant;
-}
-
-*/
-/*REGRESSION MODEL METHODS
- * --------------------------------------------------------------------------------------------------------*/
+//
+// ANOVA class implementation
+//
 Math::ANOVASummary Math::ANOVA::computeANOVA(const boost::numeric::ublas::vector<double> &coefficients,
                                              const boost::numeric::ublas::vector<double> &dependentVariableValues,
                                              const boost::numeric::ublas::matrix<double> &independentVariableValues,
@@ -56,7 +21,7 @@ Math::ANOVASummary Math::ANOVA::computeANOVA(const boost::numeric::ublas::vector
 {
     Math::ANOVASummary rv;
 
-    //Overall regression diagnostics
+    // Overall regression diagnostics
     Math::UnivariateStat acc;
     for (const auto& value : dependentVariableValues)
         acc.add(value);
@@ -80,7 +45,7 @@ Math::ANOVASummary Math::ANOVA::computeANOVA(const boost::numeric::ublas::vector
     rv.adjRSquared = 1 - rv.residualMSEVariance / rv.totalMSEVariance;
     rv.RSquared = 1 - (rv.residualMSEVariance * rv.residualDoF) / (rv.totalMSEVariance * rv.totalDoF);
 
-    //Estimated coefficient diagnostics
+    // Estimated coefficient diagnostics
     const boost::numeric::ublas::matrix<double> coeffsCovMatrix = reg.computeCoefficientCovarianceMatrix(rv.residualMSEVariance);
     Math::SummaryStatistic st;
 
@@ -94,6 +59,10 @@ Math::ANOVASummary Math::ANOVA::computeANOVA(const boost::numeric::ublas::vector
     return rv;
 }
 
+
+//
+// Regression model interface implementation for OLS sub-type
+//
 Math::RegressionModelOLS::RegressionModelOLS() :
     m_algorithmPtr(Math::RegressionModelAlgorithmCholesky().clone()) //[AC] initialize to default algorithm (first link in chain)
 {
@@ -120,18 +89,20 @@ void Math::RegressionModelOLS::calibrate(boost::numeric::ublas::vector<double> &
 {
     if (dependentVariableValues.size() == independentVariableValues.size1() and independentVariableValues.size1() > 2)
     {
+        // Construct chain of responsibility
         std::shared_ptr<Math::RegressionModelAlgorithmOLSChain> head =
                 std::make_shared<Math::RegressionModelAlgorithmOLSChain>(Math::RegressionModelAlgorithmOLSChain());
 
         std::shared_ptr<Math::RegressionModelAlgorithmOLSChain> firstLink =
                 std::make_shared<Math::RegressionModelOLSLinkCholesky>(Math::RegressionModelOLSLinkCholesky());
-        //Define more links here..
 
         std::shared_ptr<Math::RegressionModelAlgorithmOLSChain> lastLink =
                 std::make_shared<Math::RegressionModelOLSLinkMoorePenrose>(Math::RegressionModelOLSLinkMoorePenrose());
 
-        //Add more links here..
+        // Add chain links to head in order of priority execution
         head -> addLink(firstLink), head -> addLink(lastLink);
+
+        // Recursively descend chain and return pointer to algorithm being used for calibration
         m_algorithmPtr = head -> handle(coefficients, dependentVariableValues, independentVariableValues);
     }
     else
@@ -149,6 +120,10 @@ std::unique_ptr<Math::RegressionModel> Math::RegressionModelOLS::clone() const
     return std::make_unique<Math::RegressionModelOLS>(*this);
 }
 
+
+//
+// Implementation of recursive descent chain of responsibility for OLS linear system solution
+//
 Math::RegressionModelAlgorithmOLSChain::RegressionModelAlgorithmOLSChain() : m_nextLink(nullptr)
 {
 
@@ -199,6 +174,9 @@ std::unique_ptr<Math::RegressionModelAlgorithm> Math::RegressionModelOLSLinkMoor
 }
 
 
+//
+// Regression model algorithm interface implementation
+//
 Math::ANOVASummary Math::RegressionModelAlgorithm::getANOVA() const
 {
     Math::ANOVA anova;
@@ -351,9 +329,9 @@ bool Math::RegressionModelAlgorithmCholesky::hasFailed() const
 boost::numeric::ublas::matrix<double> Math::RegressionModelAlgorithmCholesky::computeCoefficientCovarianceMatrix(
         double residualVariance) const
 {
-    const boost::numeric::ublas::matrix<double> variance =
+    const boost::numeric::ublas::matrix<double> sigmaSquaredI =
             residualVariance * boost::numeric::ublas::identity_matrix<double>(m_coefficients.size());
-    return _choleskySolve(m_ch.getCholeskyFactor(), variance);
+    return _choleskySolve(m_ch.getCholeskyFactor(), sigmaSquaredI);
 }
 
 std::unique_ptr<Math::RegressionModelAlgorithm> Math::RegressionModelAlgorithmCholesky::clone() const

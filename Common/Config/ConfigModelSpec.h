@@ -23,6 +23,9 @@ namespace Common
 {
     class DataSet;
 
+    //
+    // ConfigModelSpec base class, abstraction for model-config-type model specification (enhanced equation)
+    //
     class ConfigModelSpec
     {
     public:
@@ -45,12 +48,14 @@ namespace Common
     protected:
         Common::ConfigVariable m_dVariable;
         std::vector<Common::ConfigVariable> m_idVariables;
-        //std::vector<double> m_coeff;
 
         bool _equal(const Common::ConfigModelSpec& other) const;
     };
 
 
+    //
+    // Specialization for relative model sub-type specifications
+    //
     class ConfigModelSpecRelative : public ConfigModelSpec
     {
     public:
@@ -82,6 +87,9 @@ namespace Common
     };
 
 
+    //
+    // Specialization for regression model sub-type specifications
+    //
     class ConfigModelSpecRegression : public ConfigModelSpec
     {
     public:

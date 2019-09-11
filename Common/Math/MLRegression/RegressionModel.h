@@ -5,20 +5,17 @@
 #ifndef WILDCATSTKCORE_REGRESSIONMODEL_H
 #define WILDCATSTKCORE_REGRESSIONMODEL_H
 
-#include <vector>
 #include <boost/numeric/ublas/matrix.hpp>
-#include <boost/numeric/ublas/lu.hpp>
 #include "../LinearAlgebra/MatrixDecompose.h"
 
 
 namespace Math
 {
-    //int computeDeterminantSign (const boost::numeric::ublas::permutation_matrix<std::size_t> &permutationMatrix);
-    //double computeMatrixDeterminant (boost::numeric::ublas::matrix<double> inputMatrix);
-
-
     class RegressionModelAlgorithm;
 
+    //
+    // Regression ANOVA summary stat data structs (rvs to client code) and computation
+    //
     struct SummaryStatistic
     {
         double stdErr;
@@ -56,6 +53,9 @@ namespace Math
     };
 
 
+    //
+    // Regression model class hierarchy including OLS
+    //
     class RegressionModel
     {
     public:
@@ -88,6 +88,9 @@ namespace Math
     };
 
 
+    //
+    // Recursive descent chain of responsibility classes for OLS linear system solution
+    //
     class RegressionModelAlgorithmOLSChain
     {
     public:
@@ -107,18 +110,21 @@ namespace Math
     class RegressionModelOLSLinkCholesky : public RegressionModelAlgorithmOLSChain
     {
         std::unique_ptr<Math::RegressionModelAlgorithm> handle(boost::numeric::ublas::vector<double> &coefficients,
-                                                                  const boost::numeric::ublas::vector<double> &dependentVariableValues,
-                                                                  const boost::numeric::ublas::matrix<double> &independentVariableValues) const final;
+                                                               const boost::numeric::ublas::vector<double> &dependentVariableValues,
+                                                               const boost::numeric::ublas::matrix<double> &independentVariableValues) const final;
     };
 
     class RegressionModelOLSLinkMoorePenrose : public RegressionModelAlgorithmOLSChain
     {
         std::unique_ptr<Math::RegressionModelAlgorithm> handle(boost::numeric::ublas::vector<double> &coefficients,
-                                                                  const boost::numeric::ublas::vector<double> &dependentVariableValues,
-                                                                  const boost::numeric::ublas::matrix<double> &independentVariableValues) const final;
+                                                               const boost::numeric::ublas::vector<double> &dependentVariableValues,
+                                                               const boost::numeric::ublas::matrix<double> &independentVariableValues) const final;
     };
 
 
+    //
+    // Regression model algorithm class hierarchy
+    //
     class RegressionModelAlgorithm
     {
     public:

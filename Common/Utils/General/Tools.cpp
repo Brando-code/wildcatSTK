@@ -254,25 +254,3 @@ bool Common::isNumeric(const std::string &string)
     return std::strtod(string.c_str(), &pEnd) != 0 or
            (std::strtod(string.c_str(), &pEnd) == 0 and *pEnd == '\0');
 }
-
-// From Boost vector to std vector converter
-std::vector<double> Common::bstVec2stdVec (const boost::numeric::ublas::vector<double> &inputVector)
-{
-    std::vector<double> outputVector;
-    for (unsigned long i = 0; i < inputVector.size(); ++i)
-        outputVector.push_back(inputVector(i));
-
-    return outputVector;
-}
-
-/*
-// From std vector to Boost vector conversion
-boost::numeric::ublas::vector<double> Math::stdVec2bstVec (const std::vector<double> &inputVector)
-{
-    boost::numeric::ublas::vector<double> outputVector(inputVector.size());
-    for (unsigned long i = 0; i < outputVector.size(); ++i)
-        outputVector(i) = inputVector.at(i);
-
-    return outputVector;
-}
-*/

@@ -94,8 +94,6 @@ namespace Common
     //Tool global functions : may be re-organized into separate header or class at a later stage
     double getTenorInYearsFromVariableName(const std::string& variableName);
     bool isNumeric(const std::string& string);
-    std::vector<double> bstVec2stdVec (const boost::numeric::ublas::vector<double> &inputVector);
-    //boost::numeric::ublas::vector<double> stdVec2bstVec (const std::vector<double> &inputVector);
 }
 
 #endif //WILDCATSTKCORE_TOOLS_H

@@ -4,6 +4,9 @@
 
 #include "MatrixDecompose.h"
 
+//
+// MatrixDecompose concrete classes implementation
+//
 Math::CholeskyDecompose::CholeskyDecompose() : m_L(), m_isPositiveDef(true)
 {
 
@@ -24,6 +27,7 @@ void Math::CholeskyDecompose::decompose(const boost::numeric::ublas::matrix<doub
                 sum += L(i, j) * L(k, j);
             }
 
+            // Make sure that no zero or complex element is on cholesky factor diagonal. If so, matrix is singular.
             if (i == k and M(i, i) - sum <= 0)
             {
                 std::cerr << "Math::CholeskyDecompose::decompose : "

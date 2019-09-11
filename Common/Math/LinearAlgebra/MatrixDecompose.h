@@ -10,6 +10,9 @@
 
 namespace Math
 {
+    //
+    // Class hierarchy abstracting generic matrix decomposition
+    //
     class MatrixDecompose
     {
     public:

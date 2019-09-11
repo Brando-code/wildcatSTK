@@ -10,6 +10,8 @@
 #include <string>
 #include <iomanip>
 #include <vector>
+#include <boost/numeric/ublas/matrix.hpp>
+#include <boost/numeric/ublas/matrix_proxy.hpp>
 
 //Utility functions to support BOOST unit testing framework
 
@@ -99,6 +101,54 @@ std::ostream &writeMap(const std::map<T, D> &inputMap, std::ostream &wStream, in
 */
 namespace boost
 {
+    /*
+    namespace numeric
+    {
+        namespace ublas
+        {
+            template <typename T>
+            bool operator==(const boost::numeric::ublas::matrix<T> &lhs, const boost::numeric::ublas::matrix<T> &rhs)
+            {
+                bool rv = true;
+                if (lhs.size1() != rhs.size1() or lhs.size2() != rhs.size2())
+                    rv = false;
+                else
+                {
+                    for (unsigned i = 0; i < lhs.size1(); ++i)
+                        for (unsigned j = 0; j < lhs.size2(); ++j)
+                        if (lhs(i, j) != rhs(i, j))
+                            {
+                                rv = false;
+                                break;
+                            }
+                }
+
+                return rv;
+            }
+
+            template <typename T>
+            bool operator==(const triangular_matrix<T, lower> &lhs, const triangular_matrix<T, lower> &rhs)
+            {
+                bool rv = true;
+                if (lhs.size1() != rhs.size1())
+                    rv = false;
+                else
+                {
+                    for (unsigned i = 0; i < lhs.size1(); ++i)
+                        for (unsigned j = 0; j <= i; ++j)
+                            if (lhs(i, j) != rhs(i, j))
+                            {
+                                rv = false;
+                                break;
+                            }
+                }
+
+                return rv;
+            }
+        }
+    }*/
+
+
     //Tell BOOST.TEST how to send std::pair<K, V> to boost::wrap_stringstream
     template <typename K, typename V>
     inline wrap_stringstream&
