@@ -300,7 +300,8 @@ BOOST_AUTO_TEST_SUITE(ConfigModelSpec)
         const double dvExpectedValue = ds.getValue(fx.f_dv.getBasename(), index - 1) * (1 + ivTransformedValue);
 
         spec.calibrate(ds);
-        BOOST_CHECK_EQUAL(spec.predict(ds, ds.getTimeSeries(fx.f_dv.getBasename()).getValues().size() - 1), dvExpectedValue);
+        const boost::gregorian::date d = ds.getTimeSeries(fx.f_dv.getBasename()).getDates().back();
+        BOOST_CHECK_EQUAL(spec.predict(ds, d), dvExpectedValue);
         BOOST_CHECK_EQUAL(spec.getModelSubType(), fx.f_modelSubType);
         BOOST_CHECK_EQUAL(spec.getMultiplier(), fx.f_m);
     }
@@ -388,6 +389,39 @@ BOOST_AUTO_TEST_SUITE(ConfigModelSpec)
             BOOST_TEST(summary.coefficientSummaryStat.at(i).tRatio == expectedTratios.at(i));
             BOOST_TEST(summary.coefficientSummaryStat.at(i).pValue == expectedPvalues.at(i));
         }
+    }
+
+    BOOST_AUTO_TEST_CASE(ConfigModelSpec_predict_one_step_contemporaneous_happyPath, *utf::tolerance(1e-4))
+    {
+        const Common::ConfigVariable dVar("HANG_SENG|R|0");
+        const std::vector<Common::ConfigVariable> idVars = {Common::ConfigVariable("DOW_JONES|R|0"),
+                                                            Common::ConfigVariable("US_GDP_SAAR|R|0")};
+
+        Fixture fx(dVar, idVars);
+        fx.f_modelSubType = "ols_lm";
+        fx.f_startDate = boost::gregorian::date(1970, 3, 31);
+
+        std::string inputDataSetFileName = "sample_dataSet_clean.json";
+        Common::DataSet ds;
+        loadDataSet(inputRelativePath + inputDataSetFileName, ds);
+
+        Common::ConfigModelSpecRegression cms(fx.f_dv, fx.f_ivs, fx.f_modelSubType, fx.f_startDate);
+        cms.calibrate(ds);
+
+        inputDataSetFileName = "sample_constraints_clean.json";
+        Common::DataSet constraints;
+        loadDataSet(inputRelativePath + inputDataSetFileName, constraints);
+
+        Common::DataSet output = ds;
+        for (const auto& constraint : constraints.getData())
+            for (const auto& date : constraint.second.getDates())
+                output.appendValue(constraint.first, date, constraint.second.getValue(date));
+
+        const std::vector<double> params = cms.getCalibratedCoefficients(); // intercept is at back
+        const boost::gregorian::date d(2019, 9, 30);
+        const double expectedProjection = 26270.6862104;
+
+        BOOST_TEST(cms.predict(output, d) == expectedProjection);
     }
 
 BOOST_AUTO_TEST_SUITE_END()

@@ -123,21 +123,26 @@ void Common::ConfigModelSpecRelative::calibrate(const Common::DataSet &ds)
         std::cerr << "W: ConfigModelSpecRelative::calibrate : variable "
                      << m_dVariable.getBasename() <<  " has multiple drivers for relative model type. Using first driver only..." << std::endl;
 
-    const std::vector<double> transformedDependentVariableValues = m_dVariable.getTransformedTimeSeriesValues(ds.getTimeSeries(m_dVariable.getBasename()));
-    const std::vector<double> transformedIndependentVariableValues = m_idVariables[0].getTransformedTimeSeriesValues(ds.getTimeSeries(m_idVariables[0].getBasename()));
+    const std::vector<double> transformedDependentVariableValues =
+            m_dVariable.getTransformedTimeSeriesValues(ds.getTimeSeries(m_dVariable.getBasename()));
+    const std::vector<double> transformedIndependentVariableValues =
+            m_idVariables.at(0).getTransformedTimeSeriesValues(ds.getTimeSeries(m_idVariables.at(0).getBasename()));
     
     // Delegate execution to m_modelPtr
     m_modelPtr -> calibrate(m_coeff, transformedDependentVariableValues, transformedIndependentVariableValues);
 }
 
-double Common::ConfigModelSpecRelative::predict(const Common::DataSet &ds, unsigned int index) const
+double Common::ConfigModelSpecRelative::predict(const Common::DataSet &ds, const boost::gregorian::date &date) const
 {
     if (m_coeff == 0)
         throw std::out_of_range("E: ConfigModelSpecRelative::predict : projections cannot be generated from un-calibrated models.");
 
+    const unsigned long index = ds.getTimeSeries(m_idVariables.at(0).getBasename()).getIndex(date);
     const double scalar = m_multiplier * m_coeff;
-    const double transformedProjection = scalar * m_idVariables[0].getTransformedValue(ds.getTimeSeries(m_idVariables[0].getBasename()), index);
+    const double transformedProjection =
+            scalar * m_idVariables.at(0).getTransformedValue(ds.getTimeSeries(m_idVariables.at(0).getBasename()), index);
     return m_dVariable.getLevel(ds.getTimeSeries(m_dVariable.getBasename()), transformedProjection, index);
+    //return predict(ds, index);
 }
 
 std::unique_ptr<Common::ConfigModelSpec> Common::ConfigModelSpecRelative::clone() const
@@ -169,7 +174,7 @@ Common::ConfigModelSpecRegression::ConfigModelSpecRegression(const Common::Confi
         ConfigModelSpec(dependentVariable, independentVariables),
         m_startDate(regressionStartDate),
         m_modelSubType(modelSubType),
-        m_params(independentVariables.size() + 1), // [AC] number of id variables + intercept
+        m_params(), // [AC] number of id variables + intercept
         m_computeAnovaFlag(computeAnova),
         //Should be replaced by factory when more regression-type models are available
         m_modelPtr(std::make_unique<Math::RegressionModelOLS>(Math::RegressionModelOLS()))
@@ -300,25 +305,32 @@ void Common::ConfigModelSpecRegression::calibrate(const Common::DataSet &ds)
     m_modelPtr -> calibrate(params, dVariableValuesForRegression, idVariableValuesForRegression);
 
     // Copy coefficients to vector type (std) consumable by downstream code
+    m_params.resize(m_idVariables.size() + 1);
     std::copy(params.begin(), params.end(), m_params.begin());
 }
 
-double Common::ConfigModelSpecRegression::predict(const Common::DataSet &ds, unsigned int index) const
+double Common::ConfigModelSpecRegression::predict(const Common::DataSet &ds, const boost::gregorian::date &date) const
 {
     if (m_params.empty())
         throw std::out_of_range("E: ConfigModelSpecRegression::predict : projections cannot be generated from un-calibrated models.");
 
+    std::vector<unsigned long> idVariablesIndex;
+    for (const auto& variable : m_idVariables)
+        idVariablesIndex.push_back(ds.getTimeSeries(variable.getBasename()).getIndex(date));
+
     const double intercept = m_params.back();
-    double dTransformedVariable = 0;
+    double rhsSum = 0;
     for (unsigned int i = 0; i < m_idVariables.size(); ++i)
     {
         const Common::TimeSeries ts = ds.getTimeSeries(m_idVariables.at(i).getBasename());
-        dTransformedVariable += m_params.at(i) * m_idVariables.at(i).getTransformedValue(ts, index);
+        rhsSum += m_params.at(i) * m_idVariables.at(i).getTransformedValue(ts, idVariablesIndex.at(i));
     }
 
-    dTransformedVariable += intercept;
+    rhsSum += intercept;
+
     const Common::TimeSeries ts = ds.getTimeSeries(m_dVariable.getBasename());
-    return m_dVariable.getLevel(ts, dTransformedVariable, index);
+    const unsigned long dVariableIndex = ds.getTimeSeries(m_dVariable.getBasename()).length();
+    return m_dVariable.getLevel(ts, rhsSum, dVariableIndex);
 }
 
 std::vector<double> Common::ConfigModelSpecRegression::getCalibratedCoefficients() const

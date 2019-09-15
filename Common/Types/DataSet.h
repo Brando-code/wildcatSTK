@@ -23,6 +23,7 @@ namespace Common
 
         void addData(const Common::TimeSeries &otherTs);
         void removeData(const std::string &variableName);
+        void appendValue(const std::string &variableName, const boost::gregorian::date &date, double value);
         void clearAllData();
 
         std::unordered_map<std::string, Common::TimeSeries> getData() const;

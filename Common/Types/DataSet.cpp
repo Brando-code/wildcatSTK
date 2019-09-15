@@ -33,6 +33,11 @@ void Common::DataSet::addData(const Common::TimeSeries &otherTs)
     }
 }
 
+void Common::DataSet::appendValue(const std::string &variableName, const boost::gregorian::date &date, double value)
+{
+    m_data.at(variableName).pushBack(date, value);
+}
+
 void Common::DataSet::removeData(const std::string &variableName)
 {
     m_data.erase(variableName);

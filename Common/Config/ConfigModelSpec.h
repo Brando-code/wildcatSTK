@@ -37,8 +37,7 @@ namespace Common
         unsigned int getMaxLag() const;
 
         virtual void calibrate(const Common::DataSet &ds) = 0;
-        virtual double predict(const Common::DataSet &ds, unsigned int index) const = 0;
-        //virtual double predict(const Common::DataSet &ds, const boost::gregorian::date& date) const = 0;
+        virtual double predict(const Common::DataSet &ds, const boost::gregorian::date& date) const = 0;
 
         virtual std::unique_ptr<Common::ConfigModelSpec> clone() const = 0;
 
@@ -72,7 +71,7 @@ namespace Common
         std::string getModelSubType() const;
 
         void calibrate(const Common::DataSet &ds) final;
-        double predict(const Common::DataSet &ds, unsigned int index) const final;
+        double predict(const Common::DataSet &ds, const boost::gregorian::date& date) const final;
 
         std::unique_ptr<Common::ConfigModelSpec> clone() const final;
 
@@ -106,7 +105,7 @@ namespace Common
         std::string getModelSubType() const;
 
         void calibrate(const Common::DataSet &ds) final;
-        double predict(const Common::DataSet &ds, unsigned int index) const final;
+        double predict(const Common::DataSet &ds, const boost::gregorian::date& date) const final;
         Math::ANOVASummary getANOVASummary() const;
 
         boost::gregorian::date getFirstValidRegressionDate(const Common::DataSet &ds) const;
