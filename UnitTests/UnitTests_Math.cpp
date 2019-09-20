@@ -427,6 +427,26 @@ BOOST_AUTO_TEST_SUITE(MLRegression)
                        tt::per_element());
     }
 
+    BOOST_AUTO_TEST_CASE(CholeskyDecompositionWithPivotingTest_singular_larger, *utf::tolerance(1e-4))
+    {
+        boost::numeric::ublas::matrix<double> X(4, 4);
+        X(0, 0) = 2, X(0, 1) = 1;
+        X(1, 0) = 3, X(1, 1) = 2;
+        X(2, 0) = 7; X(2, 1) = 1;
+        boost::numeric::ublas::column(X, 2) = 2 * boost::numeric::ublas::column(X, 1);
+        boost::numeric::ublas::column(X, 3) = 2 * boost::numeric::ublas::column(X, 2);
+
+        boost::numeric::ublas::matrix<double> initialMatrix = prod(trans(X), X);
+
+        Math::CholeskyDecomposeWithPivoting ch;
+        ch.decompose(initialMatrix);
+
+        const boost::numeric::ublas::matrix<double> finalMatrix = prod(ch.getCholeskyFactor(), trans(ch.getCholeskyFactor()));
+        for (unsigned long i = 0; i < initialMatrix.size1(); ++i)
+            BOOST_TEST(boost::numeric::ublas::row(initialMatrix, i) == boost::numeric::ublas::row(finalMatrix, i),
+                       tt::per_element());
+    }
+
     BOOST_AUTO_TEST_CASE(MoorePenroseRegressionTest, *utf::tolerance(1e-4))
     {
         const std::string fileName = "sample_dataSet_clean.json";

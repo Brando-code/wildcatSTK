@@ -14,6 +14,9 @@ Math::CholeskyDecompose::CholeskyDecompose() : m_L(), m_isPositiveDef(true)
 
 }
 
+//
+// Naive Cholesky decomposition for positive-definite matrix
+//
 void Math::CholeskyDecompose::decompose(const boost::numeric::ublas::matrix<double> &M)
 {
     const long dim = M.size1();
@@ -55,12 +58,14 @@ bool Math::CholeskyDecompose::hasFailed() const
     return !m_isPositiveDef;
 }
 
+//
+// Cholesky decomposition with full pivoting for semi-positive definite matrix
+//
 void Math::CholeskyDecomposeWithPivoting::decompose(const boost::numeric::ublas::matrix<double> &M)
 {
     const unsigned long dim = M.size1();
     boost::numeric::ublas::matrix<double> M_(M);
-    const boost::numeric::ublas::triangular_adaptor<boost::numeric::ublas::matrix<double>, boost::numeric::ublas::lower> ad(M_);
-    boost::numeric::ublas::triangular_matrix<double, boost::numeric::ublas::lower> L(ad);
+    boost::numeric::ublas::triangular_adaptor<boost::numeric::ublas::matrix<double>, boost::numeric::ublas::lower> L(M_);
 
     for (unsigned long j = 0; j < dim; ++j)
     {
@@ -78,6 +83,7 @@ void Math::CholeskyDecomposeWithPivoting::decompose(const boost::numeric::ublas:
                 maxIndex = k;
             }
         }
+        row(L, maxIndex) = row(L, j);
         L(j, j) = L(maxIndex, maxIndex) - maxInnerProd;
         //L(j, j) = L(j, j) - inner_prod(row_, trans(row_));
 
@@ -86,7 +92,7 @@ void Math::CholeskyDecomposeWithPivoting::decompose(const boost::numeric::ublas:
             subrange(L, j, dim, j, dim) = boost::numeric::ublas::zero_matrix<double>(dim - j, dim - j);
 
             std::cerr << "Math::CholeskyDecompose::decompose : "
-                         "algorithm quit due to matrix non-positive-definiteness." << std::endl;
+                         "algorithm ended due to matrix non-positive-definiteness." << std::endl;
             //m_isPositiveDef = false;
             break;
         }
