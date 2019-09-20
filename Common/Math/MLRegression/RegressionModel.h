@@ -31,7 +31,8 @@ namespace Math
         boost::numeric::ublas::vector<double> residuals;
 
         double sampleSize;
-        double residualMSEVariance;
+        double residualMSEVariance; // Reduced chi-squared
+        double regressionStdErr;
         double residualDoF;
         double modelMSEVariance;
         double modelDoF;

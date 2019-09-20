@@ -391,7 +391,26 @@ BOOST_AUTO_TEST_SUITE(ConfigModelSpec)
         }
     }
 
-    BOOST_AUTO_TEST_CASE(ConfigModelSpec_predict_one_step_contemporaneous_happyPath, *utf::tolerance(1e-4))
+    BOOST_AUTO_TEST_CASE(ConfigModelSpec_regression_uncalibrated)
+    {
+        const Common::ConfigVariable dVar("HANG_SENG|R|0");
+        const std::vector<Common::ConfigVariable> idVars = {Common::ConfigVariable("DOW_JONES|R|0"),
+                                                            Common::ConfigVariable("US_GDP_SAAR|R|0")};
+
+        Fixture fx(dVar, idVars);
+        fx.f_modelSubType = "ols_lm";
+        fx.f_startDate = boost::gregorian::date(1970, 3, 31);
+
+        std::string inputDataSetFileName = "sample_dataSet_clean.json";
+        Common::DataSet ds;
+        loadDataSet(inputRelativePath + inputDataSetFileName, ds);
+
+        Common::ConfigModelSpecRegression cms(fx.f_dv, fx.f_ivs, fx.f_modelSubType, fx.f_startDate);
+        const boost::gregorian::date d(2019, 9, 30);
+        BOOST_CHECK_THROW(cms.predict(ds, d), std::out_of_range);
+    }
+
+    BOOST_AUTO_TEST_CASE(ConfigModelSpec_regression_predict_one_step_contemporaneous_happyPath, *utf::tolerance(1e-4))
     {
         const Common::ConfigVariable dVar("HANG_SENG|R|0");
         const std::vector<Common::ConfigVariable> idVars = {Common::ConfigVariable("DOW_JONES|R|0"),

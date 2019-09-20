@@ -7,6 +7,7 @@
 
 #include <boost/numeric/ublas/matrix.hpp>
 #include <boost/numeric/ublas/triangular.hpp>
+#include <map>
 
 namespace Math
 {
@@ -26,13 +27,22 @@ namespace Math
     {
     public:
         CholeskyDecompose();
-        void decompose(const boost::numeric::ublas::matrix<double> &M) final;
+        void decompose(const boost::numeric::ublas::matrix<double> &M) override;
         boost::numeric::ublas::triangular_matrix<double, boost::numeric::ublas::lower> getCholeskyFactor() const;
         bool hasFailed() const final;
 
-    private:
+    protected:
         boost::numeric::ublas::triangular_matrix<double, boost::numeric::ublas::lower> m_L;
         bool m_isPositiveDef;
+    };
+
+    class CholeskyDecomposeWithPivoting : public CholeskyDecompose
+    {
+    public:
+        void decompose(const boost::numeric::ublas::matrix<double> &M) override;
+
+    private:
+
     };
 
     //More decomposition classes to derive from MatrixDecompose..

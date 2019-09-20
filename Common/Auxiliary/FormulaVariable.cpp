@@ -75,6 +75,7 @@ Common::FormulaVariableFunctionalRestoreSeason::FormulaVariableFunctionalRestore
     m_seasonalVariable(seasonalVariableName),
     m_deSeasonedVariable(deSeasonedVariableName),
     m_restorePtr(Global::RestoreSeasonFactoryMapping::instance() -> getFactory(decompositionType) -> create()),
+    m_restoreStartDate(seasonality.getDates().back()),
     m_lastSeasonalCycle(_getLastSeasonalCycle(seasonality, period))
 {
 
@@ -89,13 +90,14 @@ void Common::FormulaVariableFunctionalRestoreSeason::set(const std::string &seas
     m_seasonalVariable = seasonalVariableName;
     m_deSeasonedVariable = deSeasonedVariableName;
     m_restorePtr = Global::RestoreSeasonFactoryMapping::instance() -> getFactory(decompositionType) -> create();
+    m_restoreStartDate = seasonality.getDates().back();
     m_lastSeasonalCycle = _getLastSeasonalCycle(seasonality, period);
 }
 
 std::vector<double> Common::FormulaVariableFunctionalRestoreSeason::_getLastSeasonalCycle(const Common::TimeSeries &seasonality,
                                                                                           unsigned int period)
 {
-    m_restoreStartDate = seasonality.getDates().back();
+    //m_restoreStartDate = seasonality.getDates().back();
     std::vector<double>::const_iterator begin = seasonality.getValues().end() - period;
     std::vector<double>::const_iterator end = seasonality.getValues().end();
     return std::vector<double>(begin, end);

@@ -87,7 +87,7 @@ namespace Common
         std::unique_ptr<Common::RestoreSeason> m_restorePtr;
         std::vector<double> m_lastSeasonalCycle;
 
-        std::vector<double> _getLastSeasonalCycle(const Common::TimeSeries& seasonality, unsigned int period);
+        static std::vector<double> _getLastSeasonalCycle(const Common::TimeSeries& seasonality, unsigned int period);
     };
 
 
