@@ -15,7 +15,7 @@ Math::CholeskyDecompose::CholeskyDecompose() : m_L(), m_isPositiveDef(true)
 }
 
 //
-// Naive Cholesky decomposition for positive-definite matrix
+// Naive Cholesky-Crout decomposition for positive-definite and semi-positive-definite matrix
 //
 void Math::CholeskyDecompose::decompose(const boost::numeric::ublas::matrix<double> &M)
 {
@@ -24,10 +24,10 @@ void Math::CholeskyDecompose::decompose(const boost::numeric::ublas::matrix<doub
 
     for (unsigned long i = 0; i < dim ; ++i)
     {
-        for (unsigned long k = 0; k < i + 1; ++k)
+        for (unsigned long k = i; k < dim; ++k)
         {
             double sum = 0;
-            for (unsigned long j = 0; j < k; ++j)
+            for (unsigned long j = 0; j < i; ++j)
             {
                 sum += L(i, j) * L(k, j);
             }
@@ -35,14 +35,15 @@ void Math::CholeskyDecompose::decompose(const boost::numeric::ublas::matrix<doub
             // Make sure that no zero or complex element is on cholesky factor diagonal. If so, matrix is singular.
             if (i == k and M(i, i) - sum <= 0)
             {
+                subrange(L, i, dim, k, k + 1) = boost::numeric::ublas::zero_matrix<double>(dim - i, 1);
                 std::cerr << "Math::CholeskyDecompose::decompose : "
-                             "algorithm failed to complete due to matrix non-positive-definiteness" << std::endl;
+                             " matrix non-positive-definiteness detected. Cholesky decomposition may not be unique." << std::endl;
                 m_isPositiveDef = false;
-                break;
+                k = dim - 1;
             }
             else
-                L(i, k) = (i == k) ? sqrt(M(i, i) - sum) :
-                                    ((1. / L(k, k)) * (M(i, k) - sum));
+                L(k, i) = (i == k) ? sqrt(M(i, i) - sum) :
+                          ((1. / L(i, i)) * (M(k, i) - sum));
         }
     }
     m_L = L;
@@ -56,58 +57,4 @@ boost::numeric::ublas::triangular_matrix<double, boost::numeric::ublas::lower> M
 bool Math::CholeskyDecompose::hasFailed() const
 {
     return !m_isPositiveDef;
-}
-
-//
-// Cholesky decomposition with full pivoting for semi-positive definite matrix
-//
-void Math::CholeskyDecomposeWithPivoting::decompose(const boost::numeric::ublas::matrix<double> &M)
-{
-    const unsigned long dim = M.size1();
-    boost::numeric::ublas::matrix<double> M_(M);
-    boost::numeric::ublas::triangular_adaptor<boost::numeric::ublas::matrix<double>, boost::numeric::ublas::lower> L(M_);
-
-    for (unsigned long j = 0; j < dim; ++j)
-    {
-        const boost::numeric::ublas::vector<double> row_ = subrange(row(L, j), 0, j);
-        double maxInnerProd = inner_prod(row_, trans(row_));
-
-        unsigned long maxIndex = j;
-        for (unsigned long k = j; k < dim; ++k)
-        {
-            const boost::numeric::ublas::vector<double> thisRow_ = subrange(row(L, j), 0, j);
-            const double thisInnerProd = inner_prod(thisRow_, trans(thisRow_));
-            if (thisInnerProd > maxInnerProd)
-            {
-                maxInnerProd = thisInnerProd;
-                maxIndex = k;
-            }
-        }
-        row(L, maxIndex) = row(L, j);
-        L(j, j) = L(maxIndex, maxIndex) - maxInnerProd;
-        //L(j, j) = L(j, j) - inner_prod(row_, trans(row_));
-
-        if (L(j, j) <= 0)
-        {
-            subrange(L, j, dim, j, dim) = boost::numeric::ublas::zero_matrix<double>(dim - j, dim - j);
-
-            std::cerr << "Math::CholeskyDecompose::decompose : "
-                         "algorithm ended due to matrix non-positive-definiteness." << std::endl;
-            //m_isPositiveDef = false;
-            break;
-        }
-        else
-        {
-            L(j, j) = sqrt(L(j, j));
-            if (j < dim - 1)
-            {
-                const boost::numeric::ublas::matrix<double> Mj_ = subrange(L, j + 1, dim, j, j + 1);
-                const boost::numeric::ublas::matrix<double> P_ =
-                        prod(subrange(L, j + 1, dim, 0, j), trans(subrange(L, j, j + 1, 0, j)));
-
-                subrange(L, j + 1, dim, j, j + 1) = (Mj_ - P_) / L(j, j) ;
-            }
-        }
-    }
-    m_L = L;
 }

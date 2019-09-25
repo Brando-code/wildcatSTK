@@ -388,7 +388,7 @@ BOOST_AUTO_TEST_SUITE(MLRegression)
         /*std::cout << "The input matrix is:" << std::endl;
         readMatrix(inputMatrix);*/
 
-        Math::CholeskyDecomposeWithPivoting ch;
+        Math::CholeskyDecompose ch;
         ch.decompose(inputMatrix);
         const boost::numeric::ublas::triangular_matrix<double, boost::numeric::ublas::lower> factorizedMatrix = ch.getCholeskyFactor();
 
@@ -418,7 +418,7 @@ BOOST_AUTO_TEST_SUITE(MLRegression)
 
         boost::numeric::ublas::matrix<double> initialMatrix = prod(trans(X), X);
 
-        Math::CholeskyDecomposeWithPivoting ch;
+        Math::CholeskyDecompose ch;
         ch.decompose(initialMatrix);
 
         const boost::numeric::ublas::matrix<double> finalMatrix = prod(ch.getCholeskyFactor(), trans(ch.getCholeskyFactor()));
@@ -429,16 +429,19 @@ BOOST_AUTO_TEST_SUITE(MLRegression)
 
     BOOST_AUTO_TEST_CASE(CholeskyDecompositionWithPivotingTest_singular_larger, *utf::tolerance(1e-4))
     {
-        boost::numeric::ublas::matrix<double> X(4, 4);
+        boost::numeric::ublas::matrix<double> X(5, 5);
         X(0, 0) = 2, X(0, 1) = 1;
         X(1, 0) = 3, X(1, 1) = 2;
         X(2, 0) = 7; X(2, 1) = 1;
+        X(3, 0) = 0, X(3, 1) = 13;
+        X(4, 0) = -1, X(4, 1) = 0;
         boost::numeric::ublas::column(X, 2) = 2 * boost::numeric::ublas::column(X, 1);
         boost::numeric::ublas::column(X, 3) = 2 * boost::numeric::ublas::column(X, 2);
+        X(0, 4) = 11, X(1, 4) = 7, X(2, 4) = 2, X(3, 4) = -5, X(4, 4) = 1;
 
         boost::numeric::ublas::matrix<double> initialMatrix = prod(trans(X), X);
 
-        Math::CholeskyDecomposeWithPivoting ch;
+        Math::CholeskyDecompose ch;
         ch.decompose(initialMatrix);
 
         const boost::numeric::ublas::matrix<double> finalMatrix = prod(ch.getCholeskyFactor(), trans(ch.getCholeskyFactor()));

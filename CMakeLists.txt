@@ -34,6 +34,7 @@ add_library(wildcatSTKCore Common/Config/ConfigVariable.cpp Common/Config/Config
         Common/Types/ConfigMap.cpp Common/Types/ConfigMap.h Common/Utils/General/AlgebraicExpressionInterpreter.cpp
         Common/Utils/General/AlgebraicExpressionInterpreter.h Global/Symbols/AlgebraicOperatorSymbols.cpp Global/Symbols/AlgebraicOperatorSymbols.h
         Common/Auxiliary/FormulaVariable.cpp Common/Auxiliary/FormulaVariable.h Common/Seasonality/SeasonalDecompose.cpp
-        Common/Seasonality/SeasonalDecompose.h Common/Math/LinearAlgebra/MatrixDecompose.cpp Common/Math/LinearAlgebra/MatrixDecompose.h)
+        Common/Seasonality/SeasonalDecompose.h Common/Math/LinearAlgebra/MatrixDecompose.cpp Common/Math/LinearAlgebra/MatrixDecompose.h
+        Common/Auxiliary/AuxiliaryVariable.cpp Common/Auxiliary/AuxiliaryVariable.h)
 
 target_link_libraries(wildcatSTKCore ${Boost_LIBRARIES})

@@ -7,7 +7,7 @@
 
 #include <boost/numeric/ublas/matrix.hpp>
 #include <boost/numeric/ublas/triangular.hpp>
-#include <map>
+#include <set>
 
 namespace Math
 {
@@ -18,6 +18,7 @@ namespace Math
     {
     public:
         virtual void decompose(const boost::numeric::ublas::matrix<double> &M) = 0;
+
         virtual bool hasFailed() const = 0;
 
         virtual ~MatrixDecompose() = default;
@@ -27,8 +28,11 @@ namespace Math
     {
     public:
         CholeskyDecompose();
+
         void decompose(const boost::numeric::ublas::matrix<double> &M) override;
+
         boost::numeric::ublas::triangular_matrix<double, boost::numeric::ublas::lower> getCholeskyFactor() const;
+
         bool hasFailed() const final;
 
     protected:
@@ -36,18 +40,7 @@ namespace Math
         bool m_isPositiveDef;
     };
 
-    class CholeskyDecomposeWithPivoting : public CholeskyDecompose
-    {
-    public:
-        void decompose(const boost::numeric::ublas::matrix<double> &M) override;
-
-    private:
-
-    };
-
-    //More decomposition classes to derive from MatrixDecompose..
 }
-
 
 
 #endif //WILDCATSTKCORE_MATRIXDECOMPOSE_H
